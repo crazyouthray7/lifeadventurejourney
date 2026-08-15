@@ -1,0 +1,786 @@
+'use strict';
+
+import { UI } from './ui.js';
+import { saveGame } from './save.js';
+import { unlockTrait, checkTraits, setTheme as traitsSetTheme } from './traits.js';
+import { touchChar, charName, setTheme as charsSetTheme } from './characters.js';
+import { scheduleThread, checkThreads, actOf, setTheme as narratorSetTheme } from './narrator.js';
+
+const CURRENT = { THEME: null, S: null };
+
+const ACT_NAMES = {
+  birth: '誕生之光',
+  childhood: '童年之光',
+  youth: '青春十字路',
+  departure: '啟程',
+  nest: '築巢',
+  midlife: '中流砥柱',
+  oldage: '回望'
+};
+
+const FAMILY_DEF = {
+  poor: { money: 0, family: 40, parentsJob: '藍領勞工與夜市攤販' },
+  middle: { money: 60000, family: 55, parentsJob: '上班族與家庭主婦' },
+  rich: { money: 400000, family: 70, parentsJob: '企業經營者與名醫' }
+};
+
+const ECHO_NOTES = [
+  '多年後想來，那一步沒有對錯，只是你之所以成為你的起點。',
+  '多年後想來，你感謝當時那個沒有放棄的自己。',
+  '多年後想來，遺憾也是人生的一部分，你學會與它平靜相處。',
+  '多年後想來，人與人之間的緣分，比最後的結果更值得珍惜。',
+  '多年後想來，那一天你做出的選擇，比你想的還要勇敢。'
+];
+
+const EPITAPHS = {
+  mood: '他以溫柔丈量這個世界，最後被溫柔接住。',
+  health: '他活得像盛夏的風，熱烈而徹底地走完一生。',
+  social: '許多人記得他的笑聲，那是他留給人間的禮物。',
+  confidence: '他始終相信自己的路，未曾動搖。',
+  curiosity: '他一生都在追問，直到最後一刻仍未停下。',
+  family: '他把家放在心裡最亮的位置，從未錯過。',
+  independence: '他孤身走完自己選擇的路，無怨無悔。'
+};
+
+const DEATH_EPITAPHS = {
+  mood: '他以溫柔入世，最後以安靜告別。',
+  health: '他的生命像一場燦爛的夏天，熱烈而來，安靜而去。',
+  social: '他走時，許多人想起他的笑。',
+  confidence: '他走完自己的路，帶著他始終相信的一切。',
+  curiosity: '他帶著未竟的疑問離開，眼神仍是明亮的。',
+  family: '他離開時，心裡仍放著他的家人。',
+  independence: '他孤身而來，孤身而去，路上始終自由。'
+};
+
+const clamp = (v, min = 0, max = 100) => Math.max(min, Math.min(max, v));
+
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h >>> 0;
+}
+
+function mulberry32(a) {
+  return function () {
+    a |= 0;
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function seedNum(str) {
+  return fnv1a(String(str || ''));
+}
+
+function initRng(S) {
+  let seedNum = S._seedNum;
+  if (typeof seedNum !== 'number' || !isFinite(seedNum)) {
+    seedNum = fnv1a(String(S.seed || 'abc12345'));
+    S._seedNum = seedNum;
+  }
+  const rng = mulberry32(seedNum);
+  let used = S._rngUsed | 0;
+  while (used-- > 0) rng();
+  S._rng = { next: rng, used: S._rngUsed | 0 };
+  return S._rng;
+}
+
+function R() {
+  const S = CURRENT.S;
+  if (!S) return Math.random();
+  if (!S._rng) initRng(S);
+  const g = S._rng;
+  const v = g.next();
+  g.used++;
+  S._rngUsed = g.used;
+  return v;
+}
+
+function ri(a, b) {
+  return a + Math.floor(R() * (b - a + 1));
+}
+
+function pick(arr) {
+  return arr.length ? arr[Math.floor(R() * arr.length)] : null;
+}
+
+function weightedPick(items, wf) {
+  if (!items.length) return null;
+  let total = 0;
+  for (const it of items) total += Math.max(0, wf(it) || 0);
+  if (total <= 0) return pick(items);
+  let r = R() * total;
+  for (const it of items) {
+    r -= Math.max(0, wf(it) || 0);
+    if (r < 0) return it;
+  }
+  return items[items.length - 1];
+}
+
+function requireGame() {
+  if (!CURRENT.S) throw new Error('尚未開始遊戲：請先呼叫 newGame()');
+  return CURRENT;
+}
+
+function stageOf(age) {
+  if (age <= 6) return 'birth';
+  if (age <= 12) return 'kid';
+  if (age <= 18) return 'teen';
+  if (age <= 40) return 'adult';
+  if (age <= 60) return 'midlife';
+  return 'old';
+}
+
+function scenesPerAct(THEME, age) {
+  const map = (THEME && THEME.scenesPerAct) || {};
+  let key;
+  if (age <= 6) key = 'birth';
+  else if (age <= 12) key = 'childhood';
+  else if (age <= 18) key = 'youth';
+  else if (age <= 40) key = 'adult';
+  else if (age <= 60) key = 'midlife';
+  else key = 'oldage';
+  return map[key] != null ? map[key] : 2;
+}
+
+function milestoneAt(THEME, age) {
+  const list = (THEME && THEME.milestones) || [];
+  return list.find((m) => m && m.age === age) || null;
+}
+
+function applyFamilyDefaults(S, family) {
+  const def = FAMILY_DEF[family] || FAMILY_DEF.middle;
+  S.money = def.money;
+  S.stats.family = def.family;
+  if (!S.birth.parentsJob) S.birth.parentsJob = def.parentsJob;
+  recomputeExpense(S);
+}
+
+export function newGame(THEME, opts) {
+  const o = opts || {};
+  const seedStr = String(o.seed || '');
+  const S = {
+    version: '1.0.0',
+    seed: seedStr,
+    age: 0,
+    stage: 'birth',
+    act: 'birth',
+    alive: true,
+    ended: false,
+    deathCause: null,
+    name: String(o.name || ''),
+    birth: {
+      city: (o.birth && o.birth.city) || 'taipei',
+      family: (o.birth && o.birth.family) || 'middle',
+      parentsJob: (o.birth && o.birth.parentsJob) || '',
+      talent: '',
+      talentDesc: ''
+    },
+    stats: { mood: 60, health: 70, social: 50, confidence: 45, curiosity: 55, family: 55, independence: 30, stress: 15 },
+    skills: { language: 0, math: 0, science: 0, arts: 0, sport: 0, leadership: 0, tech: 0 },
+    money: 0,
+    income: 0,
+    expense: 0,
+    education: '',
+    school: '',
+    major: '',
+    job: null,
+    jobHistory: [],
+    housing: '',
+    spouse: null,
+    children: [],
+    parentStatus: { mom: 'alive', dad: 'alive' },
+    chars: {},
+    traits: [],
+    threads: [],
+    history: [],
+    milestones: {},
+    statsHistory: [],
+    diceCount: 0,
+    dicePass: 0,
+    gameStart: Date.now(),
+    saveTime: null,
+    flags: {},
+    _usedScenes: {},
+    _queuedScenes: [],
+    _rngUsed: 0,
+    _seedNum: 0,
+    _started: false,
+    _echoShown: false
+  };
+  applyFamilyDefaults(S, S.birth.family);
+  CURRENT.THEME = THEME;
+  CURRENT.S = S;
+  UI.setTheme(THEME);
+  narratorSetTheme(THEME);
+  traitsSetTheme(THEME);
+  charsSetTheme(THEME);
+  initRng(S);
+  return S;
+}
+
+export function resumeGame(THEME, S) {
+  CURRENT.THEME = THEME;
+  CURRENT.S = S;
+  UI.setTheme(THEME);
+  narratorSetTheme(THEME);
+  traitsSetTheme(THEME);
+  charsSetTheme(THEME);
+  initRng(S);
+  UI.board(S);
+  UI.timeline(S);
+  return S;
+}
+
+export function pickScene() {
+  const { THEME, S } = requireGame();
+  const pool = (THEME && THEME.scenes ? THEME.scenes : []).filter((s) =>
+    s &&
+    s.act === S.act &&
+    (s.minAge == null || s.minAge <= S.age) &&
+    (s.maxAge == null || S.age <= s.maxAge) &&
+    (!s.cond || !!s.cond(S)) &&
+    (!s.once || !S._usedScenes[s.id])
+  );
+  const scene = weightedPick(pool, (s) => (typeof s.weight === 'number' ? s.weight : 1));
+  if (scene && scene.once) S._usedScenes[scene.id] = true;
+  return scene || null;
+}
+
+export function rollDice(S, dice) {
+  const skill = (dice && dice.skill) || 'math';
+  const base = (S.stats && (skill in S.stats))
+    ? S.stats[skill]
+    : (S.skills && (skill in S.skills)) ? S.skills[skill] : 0;
+  const d1 = ri(1, 6);
+  const d2 = ri(1, 6);
+  const roll = d1 + d2 + Math.round(base / 20);
+  const dc = (dice && dice.dc != null) ? dice.dc : 12;
+  const pass = roll >= dc;
+  S.diceCount = (S.diceCount || 0) + 1;
+  if (pass) S.dicePass = (S.dicePass || 0) + 1;
+  return { roll, dc, pass };
+}
+
+function applyEffects(S, fx) {
+  if (!fx) return;
+  for (const k of Object.keys(fx)) {
+    const v = fx[k];
+    if (k === 'money') {
+      S.money = Math.round((S.money || 0) + (v || 0));
+    } else if (k in S.stats) {
+      S.stats[k] = clamp(S.stats[k] + (v || 0));
+    } else if (k in S.skills) {
+      S.skills[k] = clamp(S.skills[k] + (v || 0));
+    }
+  }
+}
+
+function recomputeExpense(S) {
+  let base = 0;
+  if (S.housing === 'family') base = 6000;
+  else if (S.housing === 'rent') base = 15000;
+  else if (S.housing === 'own' || S.housing === 'own_house') base = 10000;
+  S.expense = base + (S.children || []).length * 12000;
+}
+
+function applySetJob(S, job) {
+  const salary = Math.round(job.salary || 0);
+  for (const h of S.jobHistory) {
+    if (h.endAge === null) h.endAge = S.age;
+  }
+  S.job = {
+    id: job.id || '',
+    title: job.title || '',
+    salary,
+    tier: job.tier || '基層',
+    startAge: S.age,
+    _base: salary
+  };
+  S.income = salary * 12;
+  S.jobHistory.push({ title: S.job.title, startAge: S.age, endAge: null, salary });
+}
+
+function applySetSchool(S, sc) {
+  if (sc && sc.name) S.school = sc.name;
+  if (sc && sc.level) S.education = sc.level;
+}
+
+function applySetHousing(S, h) {
+  S.housing = h || '';
+  recomputeExpense(S);
+}
+
+function applySetSpouse(S, id) {
+  if (!id) return;
+  S.spouse = id;
+  touchChar(S, id, { rel: 30, met: true });
+}
+
+function applySetChild(S) {
+  const id = 'child' + (S.children.length + 1);
+  S.children.push(id);
+  touchChar(S, id, { rel: 15, met: true });
+  recomputeExpense(S);
+  return id;
+}
+
+function applySetParent(S, p) {
+  if (!p) return;
+  for (const k of ['mom', 'dad']) {
+    if (p[k]) S.parentStatus[k] = p[k];
+  }
+}
+
+function effectLabel(k, v) {
+  const THEME = CURRENT.THEME || {};
+  let label = k;
+  const sd = (THEME.statsDef || []).find((x) => x.key === k);
+  if (sd) label = sd.label;
+  else {
+    const sk = (THEME.skillDef || []).find((x) => x.key === k);
+    if (sk) label = sk.label;
+  }
+  if (k === 'money') label = '金錢';
+  const sign = v > 0 ? '+' : '';
+  return label + sign + v;
+}
+
+function buildEffectsText(opt) {
+  const fx = [];
+  const eff = opt.effects || {};
+  for (const k of Object.keys(eff)) {
+    const v = eff[k];
+    if (k === 'money') fx.push('金錢' + (v > 0 ? '+' : '') + v);
+    else fx.push(effectLabel(k, v));
+  }
+  if (opt.dice) fx.push('（骰子判定）');
+  return fx.join('、');
+}
+
+function recordHistory(S, opt, scene, meta) {
+  const fx = buildEffectsText(opt);
+  S.history.push({
+    age: S.age,
+    act: S.act,
+    sceneId: scene ? scene.id : '',
+    title: scene ? scene.title : '',
+    optionLabel: opt.label || '',
+    tag: (scene && scene.tag) || '里程碑',
+    effectsText: fx,
+    dice: !!meta.dice,
+    thread: !!meta.thread,
+    hasChars: !!meta.hasChars,
+    mag: meta.mag || 0
+  });
+  if (fx) UI.card('info', '後果', fx);
+}
+
+export function applyOption(S, opt, scene) {
+  if (!opt) return;
+  const meta = { mag: 0, dice: false, thread: false, hasChars: false };
+
+  if (opt.effects) {
+    for (const k of Object.keys(opt.effects)) {
+      const v = opt.effects[k];
+      meta.mag += Math.abs(v || 0);
+    }
+    applyEffects(S, opt.effects);
+  }
+
+  if (opt.chars) {
+    for (const id of Object.keys(opt.chars)) {
+      touchChar(S, id, opt.chars[id]);
+      meta.hasChars = true;
+      if (opt.chars[id] && typeof opt.chars[id].rel === 'number') meta.mag += Math.abs(opt.chars[id].rel);
+    }
+  }
+
+  if (opt.dice) {
+    const r = rollDice(S, opt.dice);
+    meta.dice = true;
+    const THEME = CURRENT.THEME;
+    const text = THEME && typeof THEME.diceText === 'function'
+      ? THEME.diceText(r.roll, r.dc, r.pass)
+      : '骰出 ' + r.roll + ' ／ 目標 ' + r.dc + (r.pass ? ' —— 通過' : ' —— 未通過');
+    UI.diceShow(text);
+    const res = r.pass ? opt.dice.pass : opt.dice.fail;
+    if (res) {
+      applyEffects(S, res);
+      if (res.thread) {
+        scheduleThread(S, Object.assign({}, res.thread, { source: scene && scene.id }));
+        meta.thread = true;
+      }
+    }
+  }
+
+  if (opt.thread) {
+    scheduleThread(S, Object.assign({}, opt.thread, { source: scene && scene.id }));
+    meta.thread = true;
+  }
+
+  if (opt.setJob) applySetJob(S, opt.setJob);
+  if (opt.setSchool) applySetSchool(S, opt.setSchool);
+  if (opt.setMajor) S.major = opt.setMajor;
+  if (opt.setHousing) applySetHousing(S, opt.setHousing);
+  if (opt.setSpouse) applySetSpouse(S, opt.setSpouse);
+  if (opt.setChild) applySetChild(S, opt.setChild);
+  if (opt.setParent) applySetParent(S, opt.setParent);
+  if (opt.addTraits) {
+    const list = Array.isArray(opt.addTraits) ? opt.addTraits : [opt.addTraits];
+    for (const id of list) unlockTrait(S, CURRENT.THEME, id);
+  }
+  if (typeof opt.f === 'function') {
+    try {
+      opt.f(S);
+    } catch (e) {
+      /* 內容鉤子容錯 */
+    }
+  }
+
+  recordHistory(S, opt, scene, meta);
+  UI.board(S);
+}
+
+async function playOneScene(THEME, S) {
+  let scene = null;
+  if (S._queuedScenes && S._queuedScenes.length) {
+    const tid = S._queuedScenes.shift();
+    scene = (THEME && THEME.threadScenes ? THEME.threadScenes : []).find((s) => s && s.id === tid) || null;
+    if (scene && scene.once) S._usedScenes[scene.id] = true;
+  }
+  if (!scene) scene = pickScene();
+  if (!scene) {
+    UI.card('info', '平淡的一年', '這一年沒有特別的事發生，日子在日出日落之間平穩流過。');
+    return;
+  }
+  if (scene.flags && scene.flags.key) S.flags[scene.flags.key] = true;
+  const cls = scene.tag && scene.tag.indexOf('伏筆') >= 0 ? 'gold' : '';
+  UI.card(cls || '', scene.title || '', scene.text || '');
+  const opts = scene.opts || [];
+  if (!opts.length) return;
+  const idx = await UI.choose(opts, { title: scene.title, S });
+  const opt = opts[idx];
+  if (!opt) return;
+  applyOption(S, opt, scene);
+  UI.board(S);
+}
+
+async function runMilestone(THEME, S, ms) {
+  S.milestones[ms.id] = true;
+  UI.card('gold', ms.title || '', ms.text || '');
+  if (ms.kind === 'choice' && ms.opts && ms.opts.length) {
+    const idx = await UI.choose(ms.opts, { title: ms.title, S });
+    const opt = ms.opts[idx];
+    if (opt) applyOption(S, opt, ms);
+  }
+}
+
+export async function playYear() {
+  const { THEME, S } = requireGame();
+  if (S.ended || !S.alive) return { ended: true, alive: S.alive, age: S.age };
+
+  const first = !S._started;
+  S._started = true;
+
+  // phasePre
+  if (!first) S.age = (S.age | 0) + 1;
+  S.age = Math.max(0, S.age | 0);
+  S.stage = stageOf(S.age);
+  S.act = actOf(S.age);
+
+  const ms = milestoneAt(THEME, S.age);
+  if (ms) await runMilestone(THEME, S, ms);
+  if (S.ended || !S.alive) return { ended: true, alive: S.alive, age: S.age };
+
+  UI.divider(yearText(S));
+  UI.timeline(S);
+
+  // phaseMid
+  const n = scenesPerAct(THEME, S.age);
+  for (let i = 0; i < n; i++) {
+    if (S.ended || !S.alive) break;
+    await playOneScene(THEME, S);
+  }
+  UI.timeline(S);
+
+  // phaseEnd
+  await phaseEnd(THEME, S);
+  return { ended: S.ended, alive: S.alive, age: S.age, deathCause: S.deathCause };
+}
+
+function yearText(S) {
+  const THEME = CURRENT.THEME || {};
+  const name = (THEME.actNames && THEME.actNames[S.act]) || ACT_NAMES[S.act] || S.act;
+  return '第 ' + S.age + ' 年 · ' + S.age + ' 歲 · ' + name;
+}
+
+async function phaseEnd(THEME, S) {
+  if (S.job && S.job._base) {
+    const cap = Math.round(S.job._base * 1.5);
+    if (S.job.salary < cap) {
+      S.job.salary = Math.min(cap, Math.round(S.job.salary * 1.02));
+      S.income = S.job.salary * 12;
+    }
+  }
+  recomputeExpense(S);
+  S.money = Math.round((S.money || 0) + (S.income || 0) - (S.expense || 0));
+
+  checkThreads(S);
+  checkTraits(S, THEME);
+
+  // 自然漂移
+  S.stats.stress = clamp(S.stats.stress - ri(0, 2));
+  S.stats.mood = clamp(Math.round(S.stats.mood + (60 - S.stats.mood) * 0.08 + ri(-2, 2)));
+  if (S.age >= 50 && S.age % 2 === 0) S.stats.health = clamp(S.stats.health - 1);
+  if (S.age >= 18 && S.age <= 40) S.stats.independence = clamp(S.stats.independence + 1);
+
+  // 死亡檢查
+  if (S.alive && S.age >= 72) {
+    let p = (S.age - 70) / 250;
+    if (THEME && typeof THEME.deathCheck === 'function') {
+      try {
+        const tp = THEME.deathCheck(S);
+        if (typeof tp === 'number') p = tp;
+      } catch (e) {
+        /* 容錯 */
+      }
+    }
+    if (S.age >= 95 || R() < p) {
+      S.alive = false;
+      S.deathCause = '自然離世（晚年）';
+    }
+  }
+
+  // 每 5 歲記錄
+  if (S.age % 5 === 0) {
+    S.statsHistory.push({
+      age: S.age,
+      mood: S.stats.mood,
+      health: S.stats.health,
+      social: S.stats.social,
+      confidence: S.stats.confidence,
+      stress: S.stats.stress,
+      money: S.money
+    });
+  }
+
+  if (!S.alive) {
+    S.ended = true;
+    UI.board(S);
+    await showFinale(S, { death: true });
+    return;
+  }
+
+  S.saveTime = Date.now();
+  saveGame(S, 'auto');
+
+  if (S.milestones.m_echo && S.age >= 80 && !S._echoShown) {
+    UI.board(S);
+    await showFinale(S, { death: false, canContinue: true });
+    saveGame(S, 'auto');
+  }
+}
+
+export function checkEnd() {
+  const { S } = requireGame();
+  return {
+    ended: !!S.ended,
+    alive: !!S.alive,
+    age: S.age,
+    deathCause: S.deathCause,
+    atEcho: !!(S.milestones && S.milestones.m_echo && S.age >= 80)
+  };
+}
+
+function pickMoments(S, count) {
+  const cands = (S.history || []).filter((h) => h.optionLabel);
+  const scored = cands.map((h, i) => {
+    let sc = 0;
+    if (h.thread) sc += 6;
+    if (h.dice) sc += 5;
+    if (h.hasChars) sc += 3;
+    sc += Math.min(h.mag || 0, 60) / 12;
+    sc += (i / Math.max(1, cands.length)) * 0.5;
+    return { h, sc };
+  }).sort((a, b) => b.sc - a.sc);
+  return scored.slice(0, count);
+}
+
+function mostImportant(S) {
+  let best = null;
+  let bestRel = 0;
+  for (const id of Object.keys(S.chars || {})) {
+    const c = S.chars[id];
+    if (!c || !c.met) continue;
+    if (c.rel >= bestRel) {
+      bestRel = c.rel;
+      best = id;
+    }
+  }
+  return best ? { id: best, rel: bestRel } : null;
+}
+
+function svgChart(S) {
+  const data = S.statsHistory || [];
+  if (data.length < 2) return '<p class="muted">歲月還太短，尚未留下曲線。</p>';
+  const W = 560;
+  const H = 180;
+  const pad = 24;
+  const xs = data.map((d) => d.age);
+  const minAge = xs[0];
+  const maxAge = Math.max(xs[xs.length - 1], minAge + 1);
+  const X = (a) => pad + ((a - minAge) / (maxAge - minAge)) * (W - pad * 2);
+  const Y = (v) => pad + ((100 - clamp(v, 0, 100)) / 100) * (H - pad * 2);
+  const lines = [];
+  const series = [['mood', '#e8c36f'], ['health', '#84b7d8'], ['stress', '#e47b72']];
+  for (const [key, color] of series) {
+    const pts = data.map((d) => X(d.age) + ',' + Y(d[key] || 0)).join(' ');
+    lines.push('<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2"/>');
+  }
+  const step = Math.max(1, Math.floor(data.length / 6));
+  const labels = data.filter((d, i) => i % step === 0)
+    .map((d) => '<text x="' + X(d.age) + '" y="' + (H - 6) + '" font-size="10" fill="#aab4c1">' + d.age + '</text>')
+    .join('');
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="curve" role="img" aria-label="人生曲線圖">' +
+    lines.join('') + labels + '</svg>';
+}
+
+function buildFinaleHTML(S, opts) {
+  const death = !!opts.death;
+  const THEME = CURRENT.THEME || {};
+  const ending = THEME.ending || {};
+  const part = [];
+
+  // 1. 終幕序
+  part.push('<section class="finaleOpen"><h2>' + (death ? '生命落幕' : '人生終幕') + '</h2>' +
+    '<p>' + ((death ? ending.openDeathText : ending.openText) || '從 0 歲到 ' + S.age + ' 歲，你走完了這一段。') + '</p></section>');
+
+  // 2. 迴響
+  const notes = (ending.echoNotes && ending.echoNotes.length) ? ending.echoNotes : ECHO_NOTES;
+  const moments = pickMoments(S, 5);
+  if (moments.length) {
+    part.push('<section><h3>迴響</h3>');
+    moments.forEach((m, i) => {
+      const h = m.h;
+      const note = notes[i % notes.length];
+      const fx = h.effectsText ? '，' + h.effectsText : '';
+      part.push('<div class="echo"><p><b>那年，你' + S_ageMark(h.age) + '</b>——' +
+        (h.title || '那一年') + '。你選擇了「' + (h.optionLabel || '') + '」' + fx + '。</p>' +
+        '<p class="echo-note">' + note + '</p></div>');
+    });
+    part.push('</section>');
+  }
+
+  // 3. 成績單
+  part.push('<section><h3>一生的成績單</h3><div class="report">' +
+    reportRow('最終心情', S.stats.mood) +
+    reportRow('最終健康', S.stats.health) +
+    reportRow('最終自信', S.stats.confidence) +
+    reportRow('技能頂峰', topSkill(S)) +
+    reportRow('財富', fmtMoney(S.money)) +
+    reportRow('職業', S.jobHistory.length ? S.jobHistory.map((j) => j.title).join(' → ') : '從未就業') +
+    reportRow('家庭', familySummary(S)) +
+    reportRow('骰子勝率', (S.diceCount ? Math.round((S.dicePass / S.diceCount) * 100) : 0) + '%（' + S.dicePass + '/' + S.diceCount + '）') +
+    '</div></section>');
+
+  // 4. 人生曲線圖
+  part.push('<section><h3>人生曲線圖</h3>' + svgChart(S) + '</section>');
+
+  // 5. 最重要的人
+  const person = mostImportant(S);
+  if (person) {
+    const name = charName(S, person.id);
+    part.push('<section><h3>最重要的人</h3><p class="person">' + name + '，陪你走過最長的一段路。' +
+      '你們的關係指數是 ' + person.rel + '。</p></section>');
+  }
+
+  // 6. 墓誌銘
+  const dominant = dominantTrait(S);
+  const pool = death ? DEATH_EPITAPHS : EPITAPHS;
+  const epitaph = (ending.epitaphs && ending.epitaphs.length)
+    ? pick(ending.epitaphs)
+    : (pool[dominant] || pool.mood);
+  part.push('<section><h3>墓誌銘</h3><p class="epitaph">「' + epitaph + '」</p></section>');
+
+  // 7. 製作人卡
+  const credit = ending.credit || THEME.credit || 'Produce By: CrazyRL7';
+  part.push('<section class="finaleCredit"><div class="credit">' + credit + '</div>' +
+    '<div class="finaleBtns">' +
+    (opts.canContinue ? '<button id="finaleContinue" class="stable-choice main"><span class="title">繼續人生</span></button>' : '') +
+    '<button id="finaleRestart" class="stable-choice"><span class="title">重新開始</span></button>' +
+    '</div></section>');
+
+  return part.join('');
+}
+
+function S_ageMark(age) {
+  return '（' + age + ' 歲）';
+}
+
+function reportRow(label, value) {
+  return '<div class="row"><span>' + label + '</span><b>' + value + '</b></div>';
+}
+
+function topSkill(S) {
+  let best = { key: '', val: -1 };
+  for (const k of Object.keys(S.skills)) {
+    if (S.skills[k] > best.val) best = { key: k, val: S.skills[k] };
+  }
+  const THEME = CURRENT.THEME || {};
+  const sk = (THEME.skillDef || []).find((x) => x.key === best.key);
+  return (sk ? sk.label : best.key) + ' ' + best.val;
+}
+
+function familySummary(S) {
+  const parts = [];
+  if (S.spouse) parts.push('已婚');
+  if (S.children.length) parts.push('子女 ' + S.children.length + ' 人');
+  if (!S.spouse && !S.children.length) parts.push('單身');
+  return parts.join('、');
+}
+
+function dominantTrait(S) {
+  const order = ['mood', 'health', 'social', 'confidence', 'curiosity', 'family', 'independence'];
+  let best = order[0];
+  for (const k of order) {
+    if (S.stats[k] > S.stats[best]) best = k;
+  }
+  return best;
+}
+
+function fmtMoney(n) {
+  const THEME = CURRENT.THEME || {};
+  return (typeof THEME.fmtMoney === 'function')
+    ? THEME.fmtMoney(n)
+    : 'NT$ ' + Math.round(n || 0).toLocaleString('zh-TW');
+}
+
+function showFinale(S, opts) {
+  const el = UI.finale(buildFinaleHTML(S, opts));
+  if (!el) return Promise.resolve();
+  return new Promise((resolve) => {
+    const cont = el.querySelector('#finaleContinue');
+    const restart = el.querySelector('#finaleRestart');
+    // 重新開始：任何 finale 都必須可用（m_echo 的 canContinue 分支不能提早 return 跳過綁定）
+    if (restart) {
+      restart.addEventListener('click', () => {
+        if (typeof window !== 'undefined') window.location.reload();
+      });
+    }
+    if (opts.canContinue && cont) {
+      cont.addEventListener('click', () => {
+        S._echoShown = true;
+        UI.hideFinale();
+        resolve();
+      });
+      return;
+    }
+    resolve();
+  });
+}

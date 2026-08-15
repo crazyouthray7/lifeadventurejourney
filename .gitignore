@@ -1,0 +1,12 @@
+# 測試與開發歷程（不上傳）
+.omo/
+.playwright-mcp/
+.codegraph/
+
+# 測試截圖與快照
+*.png
+*.yml
+
+# 舊版備份 / 參考檔（非本遊戲資產）
+index.legacy.html
+棒球人生模擬器.html
