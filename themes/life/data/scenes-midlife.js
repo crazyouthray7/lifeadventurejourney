@@ -196,13 +196,13 @@ export const SCENES = [
     act: 'midlife',
     stage: 'midlife',
     minAge: 46, maxAge: 52,
-    title: '健保卡與自費單',
-    text: '爸爸的住院通知下來，健保床要等，自費單上寫著病房一晚八千。你站在批價櫃檯前，後面的隊伍輕輕嘆了一口氣。',
+    title: '醫療卡與自費單',
+    text: '爸爸的住院通知下來，一般病房要等，自費單上寫著病房一晚八千。你站在批價櫃檯前，後面的隊伍輕輕嘆了一口氣。',
     tag: '財務｜照護',
     once: true,
     opts: [
       { label: '咬牙刷下去，讓爸爸住得舒服', hint: '錢再賺就有，時間不等人', effects: { money: -30000, family: 6, stress: 6, mood: -2 }, chars: { dad: { rel: 5, met: true } } },
-      { label: '排健保床，先請看護頂著', hint: '折衷的做法', effects: { money: -12000, stress: 3, family: 2 }, chars: { dad: { rel: 2, met: true } } },
+      { label: '排一般病房，先請看護頂著', hint: '折衷的做法', effects: { money: -12000, stress: 3, family: 2 }, chars: { dad: { rel: 2, met: true } } },
       { label: '跟手足談好分攤比例，一起扛', hint: '這家是大家的', effects: { social: 4, money: -15000, stress: -4, family: 4 } },
       { label: '在醫院走廊站了很久，忽然掉眼淚', hint: '有些壓力總要洩出來', effects: { mood: -4, stress: -8, family: 5 } }
     ]
@@ -277,11 +277,11 @@ export const SCENES = [
     stage: 'midlife',
     minAge: 48, maxAge: 54,
     title: '白色玫瑰花籃',
-    text: '高中同學的告別式，你穿黑西裝站在隊伍裡。他上個月還在群組說要約爬山。花籃上的白玫瑰很香，香得你幾乎喘不過氣。',
+    text: '高中同學的追思會，你穿黑西裝站在隊伍裡。他上個月還在群組說要約爬山。花籃上的白玫瑰很香，香得你幾乎喘不過氣。',
     tag: '人生｜失落',
     once: true,
     opts: [
-      { label: '走到家屬面前，握著他們的手說「節哀」', hint: '陪悲傷的人站一下', effects: { social: 5, mood: -3, confidence: 4 } },
+      { label: '走到家屬面前，握著他們的手，說不出一句話', hint: '陪悲傷的人站一下', effects: { social: 5, mood: -3, confidence: 4 } },
       { label: '在簽名簿上寫下你們最後的約定：「山還沒爬。」', hint: '把沒做完的事寫下來', effects: { mood: -4, social: 4 } },
       { label: '散場後約幾個老同學吃飯，聊他生前的事', hint: '記得他活過的樣子', effects: { social: 7, mood: 2 }, chars: { bestie: { rel: 5, met: true } } },
       { label: '把車停在路邊哭了一場', hint: '眼淚是遲到的儀式', effects: { mood: -6, stress: -8, health: 2 } }
@@ -293,7 +293,7 @@ export const SCENES = [
     stage: 'midlife',
     minAge: 50, maxAge: 55,
     title: '二十年後的火車站',
-    text: '摯友從北部調回高雄，你們約在火車站前的老豆花攤。她頭髮短了，笑聲沒變。她遞給你的名片的頭銜很長，你們卻還是點了一碗一樣的粉圓。',
+    text: '摯友從北方調回南方，你們約在火車站前的糖水攤。她頭髮短了，笑聲沒變。她遞給你的名片的頭銜很長，你們卻還是點了一碗一樣的紅豆湯。',
     tag: '人生｜友情',
     once: true,
     opts: [
@@ -332,7 +332,7 @@ export const SCENES = [
       { label: '把月薪兩成定期定額投入穩健標的', hint: '慢慢來，比較快', dice: { skill: 'math', dc: 12, pass: { money: 20000, confidence: 4, stress: -3 }, fail: { money: -10000, stress: 3 } } },
       { label: '買儲蓄險與長照險，把風險先鎖住', hint: '替未來的自己買保險', effects: { money: -120000, stress: -6, family: 3 }, chars: { partner: { rel: 3, met: true } } },
       { label: '學著看懂財報，自己管理投資', hint: '錢不假手他人', effects: { math: 5, curiosity: 5, confidence: 3, stress: 3 } },
-      { label: '聽理專的建議，一次投入高報酬商品', hint: '賭一把大的', warn: true, dice: { skill: 'math', dc: 18, pass: { money: 150000, mood: 8, confidence: 5 }, fail: { money: -150000, stress: 9, mood: -6 } } }
+      { label: '聽理專的建議，一次投入高報酬商品', hint: '賭一把大的', warn: true, dice: { skill: 'math', dc: 17, pass: { money: 150000, mood: 8, confidence: 5 }, fail: { money: -150000, stress: 9, mood: -6 } } }
     ]
   },
   {
@@ -398,6 +398,140 @@ export const SCENES = [
       { label: '把這個習慣傳給朋友和家人', hint: '好習慣也是禮物', effects: { health: 4, social: 5, family: 4 }, chars: { partner: { rel: 4, met: true } } },
       { label: '跑一次就喊累，回到從前的生活方式', hint: '改變從來不容易', effects: { health: -3, stress: 2, mood: -2 } }
     ]
+  },
+  {
+    id: 'life_midlife_invest_001',
+    act: 'midlife',
+    stage: 'midlife',
+    minAge: 40,
+    maxAge: 48,
+    title: '茶水間裡的股市話題',
+    text: '午休時間，茶水間擠滿了人，大家都在滑手機看盤。同事湊過來說「最近那支飆股你買了嗎」，另一個說他同事的同事賺了一台車。你手機裡的通知欄，正好跳出證券戶的登入提醒。',
+    tag: '金錢｜投資',
+    once: true,
+    opts: [
+      { label: '研究財報，挑穩健的藍籌股慢慢買', hint: '用時間換複利', dice: { skill: 'math', dc: 13, pass: { money: 120000, confidence: 4, mood: 3 }, fail: { money: -30000, stress: 4 } } },
+      { label: '跟風追那支飆股，賭一把', hint: '高風險，高報酬', warn: true, dice: { skill: 'math', dc: 17, pass: { money: 350000, mood: 8 }, fail: { money: -150000, stress: 8, mood: -6 } } },
+      { label: '開一個定期定額，強迫自己存錢', hint: '最無聊，也最穩', effects: { money: -60000, confidence: 3, stress: -2 } },
+      { label: '不碰股票，把錢放在定存', hint: '少賺，但心安', effects: { money: 20000, stress: -3 } }
+    ]
+  },
+  {
+    id: 'life_midlife_invest_002',
+    act: 'midlife',
+    stage: 'midlife',
+    minAge: 42,
+    maxAge: 50,
+    title: '理財專員的電話',
+    text: '理財專員打來，語氣熱絡地介紹一檔「穩健成長型」基金，說過去五年年化報酬不錯，還說現在申購有優惠。你手上正好有一筆閒錢，是去年年終獎金剩下來的。',
+    tag: '金錢｜理財',
+    once: true,
+    opts: [
+      { label: '申購基金，讓專業經理人操盤', hint: '把錢交給專業', dice: { skill: 'math', dc: 12, pass: { money: 80000, confidence: 3 }, fail: { money: -40000, stress: 4 } } },
+      { label: '先查基金績效與費用再決定', hint: '魔鬼藏在細節裡', dice: { skill: 'tech', dc: 11, pass: { curiosity: 5, money: 100000, confidence: 4 }, fail: { stress: 3 } } },
+      { label: '拒絕，自己研究被動投資', hint: '低成本指數化投資', effects: { money: -20000, curiosity: 4, tech: 3, confidence: 3 } },
+      { label: '把錢留著，等更好的機會', hint: '現金為王', effects: { money: 50000, stress: -2 } }
+    ]
+  },
+  {
+    id: 'life_midlife_invest_003',
+    act: 'midlife',
+    stage: 'midlife',
+    minAge: 44,
+    maxAge: 52,
+    title: '房仲傳來的那間老屋',
+    text: '房仲傳來一間老公寓的照片，屋況老舊，但地點好、價格比行情低兩成。他說「整理一下出租，投報率不錯」。你點開圖，看見斑駁的牆和一個需要換掉的馬桶。',
+    tag: '金錢｜房產',
+    once: true,
+    opts: [
+      { label: '買下來，整理出租當包租公／婆', hint: '用租金養房子', warn: true, dice: { skill: 'math', dc: 14, pass: { money: 300000, confidence: 5, independence: 4 }, fail: { money: -200000, stress: 8, mood: -4 } } },
+      { label: '先請人估價、算投報再決定', hint: '精算之後再出手', dice: { skill: 'tech', dc: 12, pass: { money: 150000, confidence: 4 }, fail: { money: -20000, stress: 3 } } },
+      { label: '放棄，繼續租房就好', hint: '不背貸款，一身輕', effects: { stress: -4, mood: 2 } },
+      { label: '跟家人合資，分攤風險', hint: '一家人一起投資', chars: { partner: { rel: 4, met: true } }, effects: { money: -50000, family: 4, stress: -2 } }
+    ]
+  },
+  {
+    id: 'life_midlife_invest_004',
+    act: 'midlife',
+    stage: 'midlife',
+    minAge: 40,
+    maxAge: 48,
+    title: '深夜的幣圈群組',
+    text: '朋友的幣圈群組半夜還在跳訊息，有人貼出一張暴漲的截圖，配文「早就說要上車」。你翻了一下自己空蕩的電子錢包，又看了一下新聞裡那些暴富和歸零的故事。',
+    tag: '金錢｜高風險',
+    once: true,
+    opts: [
+      { label: '小額試水，當作學費', hint: '別拿生活費賭', dice: { skill: 'tech', dc: 14, pass: { money: 50000, curiosity: 4 }, fail: { money: -30000, stress: 4 } } },
+      { label: '孤注一擲，all in 翻身', hint: '翻身或歸零', warn: true, dice: { skill: 'tech', dc: 16, pass: { money: 600000, mood: 10, confidence: 6 }, fail: { money: -400000, stress: 12, mood: -8, family: -3 } } },
+      { label: '研究白皮書，挑有價值的項目', hint: '看不懂就不碰', dice: { skill: 'tech', dc: 13, pass: { tech: 5, curiosity: 5, money: 30000 }, fail: { money: -10000, stress: 3 } } },
+      { label: '退出群組，好好睡覺', hint: '不懂的錢不賺', effects: { stress: -5, mood: 2 } }
+    ]
+  },
+  {
+    id: 'life_midlife_invest_005',
+    act: 'midlife',
+    stage: 'midlife',
+    minAge: 41,
+    maxAge: 50,
+    title: '老同事的副業邀約',
+    text: '前同事約你吃飯，說他辭職創業，現在缺一個合夥人，資金一百萬、時間自由。他拍胸脯保證「我們認識十幾年了，不會虧待你」。你筷子停在半空，想起自己那份穩定的薪水。',
+    tag: '金錢｜創業',
+    once: true,
+    opts: [
+      { label: '合夥創業，賭一個可能', hint: '人生總要賭一次', warn: true, dice: { skill: 'leadership', dc: 15, pass: { money: 400000, independence: 8, confidence: 6, mood: 6 }, fail: { money: -300000, stress: 10, mood: -6 } } },
+      { label: '婉拒，但願意當他的天使投資人', hint: '風險少一點', dice: { skill: 'math', dc: 13, pass: { money: 200000, confidence: 4 }, fail: { money: -100000, stress: 5 } } },
+      { label: '先做兼職副業試水溫', hint: '兩條腿走路', effects: { money: -20000, stress: 4, curiosity: 4, tech: 3 } },
+      { label: '謝謝他的邀請，繼續上班', hint: '穩穩地過日子', effects: { stress: -3, family: 2, mood: 1 } }
+    ]
+  },
+  {
+    id: 'life_midlife_lottery_001',
+    act: 'midlife',
+    stage: 'midlife',
+    minAge: 40,
+    maxAge: 58,
+    title: '樂透開獎的夜晚',
+    text: '週五晚上，彩券行門口排著隊。同事說頭獎上看好幾億，半開玩笑地慫恿你也買一張「當作買個夢」。你想起小時候第一次跟爸媽對發票，那種等待奇蹟的心跳。',
+    tag: '金錢｜彩券',
+    once: true,
+    opts: [
+      { label: '買一張，用 100 元換一個夢', hint: '給生活留一點期待', dice: { skill: 'math', dc: 17, pass: { money: 10000000, mood: 12, confidence: 6 }, fail: { money: -100, stress: 1 } } },
+      { label: '跟同事合資包牌', hint: '人多力量大', dice: { skill: 'math', dc: 16, pass: { money: 3000000, social: 5, mood: 8 }, fail: { money: -500, stress: 2 } } },
+      { label: '不買，把錢留著', hint: '不期待就不會失望', effects: { money: 100, stress: -2 } }
+    ]
+  },
+  {
+    id: 'life_midlife_lottery_002',
+    act: 'midlife',
+    stage: 'midlife',
+    minAge: 42,
+    maxAge: 60,
+    title: '超商櫃台的刮刮樂',
+    text: '結帳時，超商櫃台旁的刮刮樂亮著金色的宣傳貼紙。店員說今天有人刮中了十萬。你手裡握著零錢，想起一句話：人為什麼要買樂透？因為那是窮人唯一買得起的希望。',
+    tag: '金錢｜彩券',
+    once: true,
+    opts: [
+      { label: '買一張刮刮樂，當場刮開', hint: '十秒鐘的緊張感', dice: { skill: 'math', dc: 16, pass: { money: 50000, mood: 8 }, fail: { money: -200, mood: -1 } } },
+      { label: '買兩張，一張送給家人', hint: '把希望分給家人', dice: { skill: 'math', dc: 15, pass: { money: 30000, family: 4, mood: 6 }, fail: { money: -400, mood: -1 } }, chars: { partner: { rel: 3, met: true } } },
+      { label: '放下刮刮樂，去買一杯咖啡', hint: '把錢花在確定的快樂上', effects: { money: -100, mood: 3 } }
+    ]
+  },
+  {
+    id: 'life_midlife_lottery_003',
+    act: 'midlife',
+    stage: 'midlife',
+    minAge: 45,
+    maxAge: 60,
+    title: '中了小獎的那張彩券',
+    text: '你隨手對了一下彩券，居然中了四碼——金額不大，剛好夠一家人吃一頓好料的。老伴在廚房探出頭問你在笑什麼，你揚了揚手中的彩券。',
+    tag: '金錢｜彩券',
+    once: true,
+    opts: [
+      { label: '帶全家去慶祝一頓', hint: '小確幸要分享', effects: { money: -3000, family: 5, mood: 6 }, chars: { partner: { rel: 4, met: true } } },
+      { label: '把獎金存起來，湊成孩子的學費', hint: '讓小錢變大錢', effects: { money: 8000, family: 3, confidence: 2 } },
+      { label: '再買一批彩券，趁運氣好', hint: '貪心是賭徒的開端', warn: true, dice: { skill: 'math', dc: 15, pass: { money: 200000, mood: 6 }, fail: { money: -8000, mood: -3, stress: 3 } } },
+      { label: '把彩券裱起來，當作紀念', hint: '記錄一下運氣好的時刻', effects: { mood: 4, arts: 2 } }
+    ]
   }
 ];
 
@@ -419,7 +553,7 @@ export const MIDLIFE_MILESTONES = [
     id: 'm_care',
     age: 47,
     title: '長輩照護',
-    text: '媽媽跌倒後，醫生說需要長期照護。妹妹在台北，你在高雄，誰照顧、怎麼照顧，第一次變成家裡必須面對的問題。你掛了電話，站在陽台很久，雖然菸已經戒了。',
+    text: '媽媽跌倒後，醫生說需要長期照護。妹妹在北方，你在南方，誰照顧、怎麼照顧，第一次變成家裡必須面對的問題。你掛了電話，站在陽台很久，雖然菸已經戒了。',
     kind: 'choice',
     opts: [
       { label: '放下部分工作，親自照顧', hint: '最重，也最沒有遺憾', need: { stat: 'family', min: 40 }, effects: { money: -200000, stress: 12, health: -5, family: 10 }, chars: { mom: { rel: 8, met: true }, dad: { rel: 6, met: true } } },
@@ -440,7 +574,7 @@ export const MIDLIFE_MILESTONES = [
     id: 'm_estate',
     age: 55,
     title: '遺產規劃',
-    text: '同事的父親去世，遺產卡在稅務與繼承的文件裡半年。你回家看著存款與房子，第一次想：要是有一天我不在了，家人要花多少力氣才能辦完這些事？',
+    text: '同事的父親離開後，遺產卡在稅務與繼承的文件裡半年。你回家看著存款與房子，第一次想：要是有一天我不在了，家人要花多少力氣才能辦完這些事？',
     kind: 'choice',
     opts: [
       { label: '買足保險與長照險，把風險轉嫁', hint: '替家人擋掉意外', effects: { money: -120000, stress: -6, family: 4 }, chars: { partner: { rel: 4, met: true } } },
@@ -453,10 +587,10 @@ export const MIDLIFE_MILESTONES = [
     id: 'm_retireplan',
     age: 58,
     title: '退休規劃',
-    text: '公司的老主管退休後的第一年，在群組說「比想像中空」。你算了一下自己的存款與勞保，還有兩年。你想，這次不能再被退休這個詞嚇到，得先想清楚要過什麼樣的生活。',
+    text: '公司的老主管退休後的第一年，在群組說「比想像中空」。你算了一下自己的存款與退休金，還有兩年。你想，這次不能再被退休這個詞嚇到，得先想清楚要過什麼樣的生活。',
     kind: 'choice',
     opts: [
-      { label: '精算勞保與退休金，訂下退休日期', hint: '用數字把不安算清楚', effects: { confidence: 4, stress: -6, curiosity: 3, mood: 3 } },
+      { label: '精算退休金與年金，訂下退休日期', hint: '用數字把不安算清楚', effects: { confidence: 4, stress: -6, curiosity: 3, mood: 3 } },
       { label: '逐步縮減開銷，練習過簡樸生活', hint: '先習慣，再退休', effects: { money: 20000, stress: -3, family: 2, mood: -2 } },
       { label: '盤點退休後想做的事，列成清單', hint: '退休不是結束，是換跑道', effects: { mood: 7, curiosity: 6, stress: -4 } },
       { label: '不想面對，繼續加班逃避', hint: '先擱著，反正還兩年', effects: { stress: 7, mood: -4, confidence: -3 } }

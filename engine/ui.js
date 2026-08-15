@@ -1,6 +1,17 @@
 'use strict';
 
 import { charPanel } from './characters.js';
+import { actOf } from './narrator.js';
+
+const STAGE_NAMES = {
+  birth: '誕生之光',
+  childhood: '童年之光',
+  youth: '青春十字路',
+  departure: '啟程',
+  nest: '築巢',
+  midlife: '中流砥柱',
+  oldage: '回望'
+};
 
 let _theme = null;
 
@@ -127,10 +138,25 @@ UI.diceShow = function (text) {
   UI.card('info', '骰子判定', text || '');
 };
 
+let _prevBoard = null;
+
+UI.boardReset = function () {
+  _prevBoard = null;
+};
+
+function deltaHtml(prev, key, val) {
+  if (!prev) return '';
+  const pv = prev[key];
+  if (pv == null || pv === val) return '';
+  const d = val - pv;
+  return '<em class="delta ' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '') + d + '</em>';
+}
+
 UI.board = function (S) {
   const board = $('board');
   if (!board) return;
   const t = _theme || {};
+  const prev = _prevBoard;
 
   let statsEl = board.querySelector('.stats');
   if (!statsEl) {
@@ -140,11 +166,14 @@ UI.board = function (S) {
   }
   statsEl.innerHTML = '';
   const statsDef = t.statsDef || [];
+  const statsSnap = {};
   for (const d of statsDef) {
     const val = S.stats[d.key] != null ? S.stats[d.key] : 0;
+    statsSnap[d.key] = val;
     const item = document.createElement('span');
     item.className = 'stat' + (d.pos ? '' : ' neg');
-    item.innerHTML = '<i>' + (d.icon || '') + '</i>' + (d.label || d.key) + '<b>' + val + '</b>';
+    item.innerHTML = '<i>' + (d.icon || '') + '</i>' + (d.label || d.key) + '<b>' + val + '</b>' +
+      deltaHtml(prev && prev.stats, d.key, val);
     statsEl.appendChild(item);
   }
 
@@ -156,11 +185,14 @@ UI.board = function (S) {
   }
   skillsEl.innerHTML = '';
   const skillDef = t.skillDef || [];
+  const skillSnap = {};
   for (const d of skillDef) {
     const val = S.skills[d.key] != null ? S.skills[d.key] : 0;
+    skillSnap[d.key] = val;
     const item = document.createElement('span');
     item.className = 'skill';
-    item.innerHTML = (d.label || d.key) + ' <b>' + val + '</b>';
+    item.innerHTML = (d.label || d.key) + ' <b>' + val + '</b>' +
+      deltaHtml(prev && prev.skills, d.key, val);
     skillsEl.appendChild(item);
   }
 
@@ -175,9 +207,14 @@ UI.board = function (S) {
     S.job ? S.job.title : '無業',
     housingLabel(S.housing)
   ];
-  const money = t.fmtMoney ? t.fmtMoney(S.money) : 'NT$ ' + S.money;
+  const money = t.fmtMoney ? t.fmtMoney(S.money) : '$ ' + S.money;
+  const moneyDelta = (prev && prev.money != null && prev.money !== S.money)
+    ? '<em class="delta ' + (S.money > prev.money ? 'up' : 'down') + '">' +
+      (S.money > prev.money ? '+' : '') + (t.fmtMoney ? t.fmtMoney(Math.abs(S.money - prev.money)).replace('$ ', '') : (S.money - prev.money)) +
+      '</em>'
+    : '';
   meta.innerHTML = pills.map((x) => '<span class="pill">' + x + '</span>').join('') +
-    '<span class="pill money">' + money + '</span>';
+    '<span class="pill money">' + money + moneyDelta + '</span>';
 
   let traits = $('traits');
   if (!traits) {
@@ -197,6 +234,8 @@ UI.board = function (S) {
     board.appendChild(cp);
   }
   cp.innerHTML = charPanel(S, _theme);
+
+  _prevBoard = { stats: statsSnap, skills: skillSnap, money: S.money };
 };
 
 function housingLabel(h) {
@@ -217,7 +256,16 @@ UI.timeline = function (S) {
     byAge.get(h.age).push(h);
   }
   const maxAge = Math.max(0, S.age | 0);
+  let curAct = null;
   for (let age = 0; age <= maxAge; age++) {
+    const act = actOf(age);
+    if (act !== curAct) {
+      curAct = act;
+      const st = document.createElement('div');
+      st.className = 'tlStage';
+      st.textContent = (STAGE_NAMES[act] || act) + ' · ' + age + ' 歲起';
+      list.appendChild(st);
+    }
     const recs = byAge.get(age) || [];
     const label = recs.length
       ? recs.map((r) => r.title || r.optionLabel).filter(Boolean).join('、')

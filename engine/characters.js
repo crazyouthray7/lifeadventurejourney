@@ -26,6 +26,9 @@ export function touchChar(S, id, delta) {
 
 export function charName(S, id) {
   if (!id) return '';
+  // 後代系統：動態姓名（爸媽真名、子女名、伴侶名）優先
+  if (S && S.charNames && S.charNames[id]) return S.charNames[id];
+  if (S && S.childMeta && S.childMeta[id] && S.childMeta[id].name) return S.childMeta[id].name;
   const defs = (_THEME && _THEME.characters) || [];
   const d = defs.find((x) => x.id === id);
   return (d && d.name) || id;

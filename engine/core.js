@@ -43,12 +43,12 @@ const EPITAPHS = {
 };
 
 const DEATH_EPITAPHS = {
-  mood: '他以溫柔入世，最後以安靜告別。',
+  mood: '他以溫柔入世，最後在安詳中睡去。',
   health: '他的生命像一場燦爛的夏天，熱烈而來，安靜而去。',
-  social: '他走時，許多人想起他的笑。',
+  social: '他遠行時，許多人想起他的笑。',
   confidence: '他走完自己的路，帶著他始終相信的一切。',
-  curiosity: '他帶著未竟的疑問離開，眼神仍是明亮的。',
-  family: '他離開時，心裡仍放著他的家人。',
+  curiosity: '他帶著未竟的疑問遠行，眼神仍是明亮的。',
+  family: '他安歇時，心裡仍放著他的家人。',
   independence: '他孤身而來，孤身而去，路上始終自由。'
 };
 
@@ -211,7 +211,13 @@ export function newGame(THEME, opts) {
     _rngUsed: 0,
     _seedNum: 0,
     _started: false,
-    _echoShown: false
+    _echoShown: false,
+    // 後代系統
+    generation: 1,          // 第幾代
+    lineage: [],            // 祖先列傳 [{ gen, name, age, epitaph, summary }]
+    childMeta: {},          // childId -> { name, gender, birthAge, alive }
+    charNames: {},          // 角色 id -> 動態姓名（爸媽/子女/親屬真名）
+    family: null            // 三代家族樹（buildFamilyTree 填入）
   };
   applyFamilyDefaults(S, S.birth.family);
   CURRENT.THEME = THEME;
@@ -221,6 +227,7 @@ export function newGame(THEME, opts) {
   traitsSetTheme(THEME);
   charsSetTheme(THEME);
   initRng(S);
+  buildFamilyTree(S, null);
   return S;
 }
 
@@ -232,6 +239,7 @@ export function resumeGame(THEME, S) {
   traitsSetTheme(THEME);
   charsSetTheme(THEME);
   initRng(S);
+  UI.boardReset();
   UI.board(S);
   UI.timeline(S);
   return S;
@@ -320,14 +328,217 @@ function applySetSpouse(S, id) {
   if (!id) return;
   S.spouse = id;
   touchChar(S, id, { rel: 30, met: true });
+  // 伴侶第一次出現時取名（動態寫入 charNames，供後代系統/角色面板顯示真名）
+  if (!S.charNames[id]) S.charNames[id] = newName();
 }
 
 function applySetChild(S) {
   const id = 'child' + (S.children.length + 1);
   S.children.push(id);
+  S.childMeta[id] = { name: newName(), gender: R() < 0.5 ? 'f' : 'm', birthAge: S.age, alive: true };
+  S.charNames[id] = S.childMeta[id].name;
   touchChar(S, id, { rel: 15, met: true });
   recomputeExpense(S);
   return id;
+}
+
+/** 用引擎隨機源產生一個姓名（theme 提供姓名池，引擎提供可重現的 R） */
+function newName(gender) {
+  const THEME = CURRENT.THEME || {};
+  if (THEME.names && typeof THEME.names.genName === 'function') {
+    return THEME.names.genName(R, gender);
+  }
+  return (gender === 'f' ? '小柔' : '小剛');
+}
+
+/* ============ 後代系統：無聲自動模式 ============ */
+
+let _autoMode = false;
+
+/** 進入/離開無聲自動模式（後代系統背景快轉用，不吃 UI、不寫存檔） */
+export function setAutoMode(v) {
+  _autoMode = !!v;
+  return _autoMode;
+}
+
+/** 自動選項：複製 UI 的 needUnmet 邏輯，選第一個可解鎖選項；全鎖定則強制第一個 */
+function autoPick(opts, S) {
+  const list = opts || [];
+  for (let i = 0; i < list.length; i++) {
+    const o = list[i];
+    if (!o) continue;
+    if (!o.need || !S) return i;
+    const { stat, min } = o.need;
+    const val = (S.stats && (stat in S.stats))
+      ? S.stats[stat]
+      : (S.skills && (stat in S.skills)) ? S.skills[stat] : 0;
+    if (val >= (min || 0)) return i;
+  }
+  return 0;
+}
+
+/* ============ 後代系統：三代家族樹 ============ */
+
+/**
+ * 建立 S.family 三代家族樹。
+ * gen1 = 祖輩（阿公/阿嬤/外公/外婆）
+ * gen2 = 父輩（爸爸/媽媽 + 叔伯姨舅姑）
+ * gen3 = 己輩（自己 + 兄弟姐妹 + 堂/表兄弟姐妹）
+ * @param {object} S 目前的 S（己輩本人）
+ * @param {object|null} parentS 交棒用的父輩 S（第一代傳 null，自行生成祖輩/父輩）
+ */
+function buildFamilyTree(S, parentS) {
+  const gen1 = [], gen2 = [], gen3 = [];
+
+  if (parentS) {
+    // 子輩：上一代的爸爸媽媽 = 這一代的阿公阿嬤；上一代的主角 = 爸爸，伴侶 = 媽媽
+    const pf = (parentS.family && parentS.family.tree) || null;
+    const g2p = pf ? pf.gen2 : [];
+    const g3p = pf ? pf.gen3 : [];
+
+    gen1.push(
+      { role: '阿公', name: (g2p.find((m) => m.role === '爸爸') || {}).name || (parentS.charNames.dad || '阿公'), gender: 'm' },
+      { role: '阿嬤', name: (g2p.find((m) => m.role === '媽媽') || {}).name || (parentS.charNames.mom || '阿嬤'), gender: 'f' },
+      { role: '外公', name: newName('m'), gender: 'm' },
+      { role: '外婆', name: newName('f'), gender: 'f' }
+    );
+
+    // 爸爸 = 上一代主角（真名）；媽媽 = 伴侶真名（未結婚則生成）
+    const dadName = parentS.name || '爸爸';
+    const momName = (parentS.spouse && parentS.charNames[parentS.spouse]) || newName('f');
+    gen2.push(
+      { role: '爸爸', name: dadName, gender: 'm' },
+      { role: '媽媽', name: momName, gender: 'f' }
+    );
+    // 伯伯/姑姑 = 上一代主角的兄弟姐妹（一男一女）；舅舅/阿姨 = 伴侶的兄弟姐妹（新生成）
+    const sibs = g3p.filter((m) => m.role === '兄弟姐妹');
+    const bro = sibs.find((m) => m.gender === 'm');
+    const sis = sibs.find((m) => m.gender === 'f');
+    gen2.push(
+      { role: '伯伯', name: (bro && bro.name) || newName('m'), gender: 'm' },
+      { role: '姑姑', name: (sis && sis.name) || newName('f'), gender: 'f' },
+      { role: '舅舅', name: newName('m'), gender: 'm' },
+      { role: '阿姨', name: newName('f'), gender: 'f' }
+    );
+
+    // 己輩：自己 + 兄弟姐妹（父輩其他子女）+ 堂/表兄弟姐妹
+    gen3.push({ role: '自己', name: S.name || '我', gender: S._selfGender || '?' });
+    (parentS.children || []).forEach((cid) => {
+      const cm = parentS.childMeta[cid];
+      if (cm && cid !== S._selfChildId) gen3.push({ role: '兄弟姐妹', name: cm.name || cid, gender: cm.gender || 'm' });
+    });
+    gen3.push(
+      { role: '堂兄弟姐妹', name: newName(R() < 0.5 ? 'm' : 'f'), gender: '?' },
+      { role: '表兄弟姐妹', name: newName(R() < 0.5 ? 'm' : 'f'), gender: '?' }
+    );
+  } else {
+    // 第一代：爸媽取真名（下一代成為阿公阿嬤時用）；兄弟姐妹一男一女（下一代成為伯伯/姑姑時用）
+    const dadReal = newName('m');
+    const momReal = newName('f');
+    gen1.push(
+      { role: '阿公', name: newName('m'), gender: 'm' },
+      { role: '阿嬤', name: newName('f'), gender: 'f' },
+      { role: '外公', name: newName('m'), gender: 'm' },
+      { role: '外婆', name: newName('f'), gender: 'f' }
+    );
+    gen2.push(
+      { role: '爸爸', name: dadReal, gender: 'm' },
+      { role: '媽媽', name: momReal, gender: 'f' },
+      { role: '伯伯', name: newName('m'), gender: 'm' },
+      { role: '姑姑', name: newName('f'), gender: 'f' },
+      { role: '舅舅', name: newName('m'), gender: 'm' },
+      { role: '阿姨', name: newName('f'), gender: 'f' }
+    );
+    gen3.push(
+      { role: '自己', name: S.name || '我', gender: '?' },
+      { role: '兄弟姐妹', name: newName('m'), gender: 'm' },
+      { role: '兄弟姐妹', name: newName('f'), gender: 'f' },
+      { role: '堂兄弟姐妹', name: newName(R() < 0.5 ? 'm' : 'f'), gender: '?' },
+      { role: '表兄弟姐妹', name: newName(R() < 0.5 ? 'm' : 'f'), gender: '?' }
+    );
+    // 爸媽真名寫入 charNames（角色面板/最重要的人顯示真名）
+    S.charNames = S.charNames || {};
+    S.charNames.dad = dadReal;
+    S.charNames.mom = momReal;
+  }
+
+  S.family = { gen: (parentS ? (parentS.generation || 1) + 1 : 1), tree: { gen1, gen2, gen3 } };
+  return S.family;
+}
+
+/* ============ 後代系統：交棒（以子女身分繼續） ============ */
+
+/**
+ * 以父輩的某個子女開啟下一代。
+ * - seed = seedNum(父seed + '|g' + 代數 + '|' + childId)（可重現）
+ * - 遺產：父輩財富 30%
+ * - 天賦遺傳：父輩 top2 技能 ×25% 加成
+ * - 背景快轉：用無聲自動模式把 0 歲跑到「交棒時孩子應有的年齡」
+ * @param {object} parentS 即將交棒的父輩 S
+ * @param {number} childIdx S.children 的 index
+ * @returns {object|null} 子輩 S（快轉完成、可接續）；失敗回 null
+ */
+export async function spawnChild(parentS, childIdx) {
+  const THEME = CURRENT.THEME;
+  if (!parentS || !THEME) return null;
+  const prevS = CURRENT.S; // 交棒前的主角（newGame 會覆寫 CURRENT.S，先留底）
+  const childId = (parentS.children || [])[childIdx];
+  const meta = (parentS.childMeta || {})[childId];
+  if (!childId || !meta || meta.alive === false) return null;
+
+  const gen = (parentS.generation || 1) + 1;
+  const seed = seedNum(String(parentS.seed || '') + '|g' + gen + '|' + childId);
+  const childAge = Math.max(0, (parentS.age || 0) - (meta.birthAge || 0));
+  const family = parentS.money >= 3000000 ? 'rich' : (parentS.money >= 800000 ? 'middle' : 'poor');
+
+  const S = newGame(THEME, {
+    seed: String(seed),
+    name: meta.name || '繼承者',
+    birth: { city: parentS.birth.city || 'taipei', family, parentsJob: (parentS.job && parentS.job.title) || '' }
+  });
+
+  // 家譜與世代
+  S.generation = gen;
+  S._selfChildId = childId;
+  S._selfGender = meta.gender || '?';
+  S.lineage = (parentS.lineage || []).concat([{
+    gen: parentS.generation || 1,
+    name: parentS.name || '祖輩',
+    age: parentS.age || 0,
+    money: parentS.money || 0,
+    job: (parentS.job && parentS.job.title) || ''
+  }]);
+
+  // 遺產（30%）+ 天賦遺傳
+  S.money = Math.round((S.money || 0) + (parentS.money || 0) * 0.3);
+  const top = Object.keys(parentS.skills || {}).map((k) => [k, parentS.skills[k] || 0]).sort((a, b) => b[1] - a[1]).slice(0, 2);
+  top.forEach(([k, v]) => {
+    if (v > 20) S.skills[k] = clamp((S.skills[k] || 0) + Math.round(v * 0.25));
+  });
+
+  // 父母身份：爸爸 = 上一代主角真名；媽媽 = 伴侶真名
+  S.charNames.dad = parentS.name || '爸爸';
+  S.charNames.mom = (parentS.spouse && parentS.charNames[parentS.spouse]) || '媽媽';
+  S.family = buildFamilyTree(S, parentS);
+
+  // 背景快轉：無聲跑完孩子出生到現在的人生
+  if (childAge > 0) {
+    CURRENT.S = S;
+    setAutoMode(true);
+    try {
+      let guard = 0;
+      while (S.alive && !S.ended && S.age < childAge && guard < 120) {
+        await playYear();
+        guard++;
+      }
+    } finally {
+      setAutoMode(false);
+      CURRENT.S = prevS;
+    }
+  }
+  if (!S.alive || S.ended) return null;
+  saveGame(S, 'auto');
+  return S;
 }
 
 function applySetParent(S, p) {
@@ -356,8 +567,9 @@ function buildEffectsText(opt) {
   const eff = opt.effects || {};
   for (const k of Object.keys(eff)) {
     const v = eff[k];
-    if (k === 'money') fx.push('金錢' + (v > 0 ? '+' : '') + v);
-    else fx.push(effectLabel(k, v));
+    const cls = v > 0 ? 'fx-pos' : (v < 0 ? 'fx-neg' : 'fx-zero');
+    const text = (k === 'money') ? ('金錢' + (v > 0 ? '+' : '') + v) : effectLabel(k, v);
+    fx.push('<span class="' + cls + '">' + text + '</span>');
   }
   if (opt.dice) fx.push('（骰子判定）');
   return fx.join('、');
@@ -408,7 +620,7 @@ export function applyOption(S, opt, scene) {
     const text = THEME && typeof THEME.diceText === 'function'
       ? THEME.diceText(r.roll, r.dc, r.pass)
       : '骰出 ' + r.roll + ' ／ 目標 ' + r.dc + (r.pass ? ' —— 通過' : ' —— 未通過');
-    UI.diceShow(text);
+    if (!_autoMode) UI.diceShow(text);
     const res = r.pass ? opt.dice.pass : opt.dice.fail;
     if (res) {
       applyEffects(S, res);
@@ -444,7 +656,7 @@ export function applyOption(S, opt, scene) {
   }
 
   recordHistory(S, opt, scene, meta);
-  UI.board(S);
+  if (!_autoMode) UI.board(S);
 }
 
 async function playOneScene(THEME, S) {
@@ -456,26 +668,29 @@ async function playOneScene(THEME, S) {
   }
   if (!scene) scene = pickScene();
   if (!scene) {
+    if (_autoMode) return;
     UI.card('info', '平淡的一年', '這一年沒有特別的事發生，日子在日出日落之間平穩流過。');
     return;
   }
   if (scene.flags && scene.flags.key) S.flags[scene.flags.key] = true;
   const cls = scene.tag && scene.tag.indexOf('伏筆') >= 0 ? 'gold' : '';
-  UI.card(cls || '', scene.title || '', scene.text || '');
+  if (!_autoMode) UI.card(cls || '', scene.title || '', scene.text || '');
   const opts = scene.opts || [];
   if (!opts.length) return;
-  const idx = await UI.choose(opts, { title: scene.title, S });
+  const idx = _autoMode ? autoPick(opts, S) : await UI.choose(opts, { title: scene.title, S });
   const opt = opts[idx];
   if (!opt) return;
   applyOption(S, opt, scene);
-  UI.board(S);
 }
 
 async function runMilestone(THEME, S, ms) {
+  if (!ms) return;
+  // 條件觸發：回傳 false 則跳過（例如「已有子女」才出現二胎/三胎）
+  if (typeof ms.when === 'function' && !ms.when(S)) return;
   S.milestones[ms.id] = true;
-  UI.card('gold', ms.title || '', ms.text || '');
+  if (!_autoMode) UI.card('gold', ms.title || '', ms.text || '');
   if (ms.kind === 'choice' && ms.opts && ms.opts.length) {
-    const idx = await UI.choose(ms.opts, { title: ms.title, S });
+    const idx = _autoMode ? autoPick(ms.opts, S) : await UI.choose(ms.opts, { title: ms.title, S });
     const opt = ms.opts[idx];
     if (opt) applyOption(S, opt, ms);
   }
@@ -498,8 +713,8 @@ export async function playYear() {
   if (ms) await runMilestone(THEME, S, ms);
   if (S.ended || !S.alive) return { ended: true, alive: S.alive, age: S.age };
 
-  UI.divider(yearText(S));
-  UI.timeline(S);
+  if (!_autoMode) UI.divider(yearText(S));
+  if (!_autoMode) UI.timeline(S);
 
   // phaseMid
   const n = scenesPerAct(THEME, S.age);
@@ -507,17 +722,19 @@ export async function playYear() {
     if (S.ended || !S.alive) break;
     await playOneScene(THEME, S);
   }
-  UI.timeline(S);
+  if (!_autoMode) UI.timeline(S);
 
   // phaseEnd
-  await phaseEnd(THEME, S);
+  const ph = await phaseEnd(THEME, S);
+  if (ph && ph.handoff) return ph; // 交棒給下一代
   return { ended: S.ended, alive: S.alive, age: S.age, deathCause: S.deathCause };
 }
 
 function yearText(S) {
   const THEME = CURRENT.THEME || {};
   const name = (THEME.actNames && THEME.actNames[S.act]) || ACT_NAMES[S.act] || S.act;
-  return '第 ' + S.age + ' 年 · ' + S.age + ' 歲 · ' + name;
+  const gen = (S.generation && S.generation > 1) ? '第 ' + S.generation + ' 代 · ' : '';
+  return gen + '第 ' + S.age + ' 年 · ' + S.age + ' 歲 · ' + name;
 }
 
 async function phaseEnd(THEME, S) {
@@ -540,7 +757,7 @@ async function phaseEnd(THEME, S) {
   if (S.age >= 50 && S.age % 2 === 0) S.stats.health = clamp(S.stats.health - 1);
   if (S.age >= 18 && S.age <= 40) S.stats.independence = clamp(S.stats.independence + 1);
 
-  // 死亡檢查
+  // 人生檢視（晚年自然安歇）
   if (S.alive && S.age >= 72) {
     let p = (S.age - 70) / 250;
     if (THEME && typeof THEME.deathCheck === 'function') {
@@ -553,7 +770,7 @@ async function phaseEnd(THEME, S) {
     }
     if (S.age >= 95 || R() < p) {
       S.alive = false;
-      S.deathCause = '自然離世（晚年）';
+      S.deathCause = '在睡夢中安詳安歇（晚年）';
     }
   }
 
@@ -572,15 +789,25 @@ async function phaseEnd(THEME, S) {
 
   if (!S.alive) {
     S.ended = true;
+    if (_autoMode) return { ended: true, alive: false, age: S.age }; // 無聲模式：交棒模擬中死亡 → 直接結束
     UI.board(S);
-    await showFinale(S, { death: true });
-    return;
+    const act = await showFinale(S, { death: true, canInherit: (S.children || []).length > 0 });
+    if (act && act.action === 'child') {
+      const childS = await spawnChild(S, act.childIdx);
+      if (childS) {
+        CURRENT.S = childS;
+        CURRENT.THEME = THEME;
+        UI.board(childS);
+        return { ended: false, alive: true, age: childS.age, handoff: true, nextGen: childS.generation };
+      }
+    }
+    return { ended: true, alive: false, age: S.age, deathCause: S.deathCause };
   }
 
   S.saveTime = Date.now();
-  saveGame(S, 'auto');
+  if (!_autoMode) saveGame(S, 'auto');
 
-  if (S.milestones.m_echo && S.age >= 80 && !S._echoShown) {
+  if (S.milestones.m_echo && S.age >= 80 && !S._echoShown && !_autoMode) {
     UI.board(S);
     await showFinale(S, { death: false, canContinue: true });
     saveGame(S, 'auto');
@@ -658,7 +885,7 @@ function buildFinaleHTML(S, opts) {
   const part = [];
 
   // 1. 終幕序
-  part.push('<section class="finaleOpen"><h2>' + (death ? '生命落幕' : '人生終幕') + '</h2>' +
+  part.push('<section class="finaleOpen"><h2>人生終幕</h2>' +
     '<p>' + ((death ? ending.openDeathText : ending.openText) || '從 0 歲到 ' + S.age + ' 歲，你走完了這一段。') + '</p></section>');
 
   // 2. 迴響
@@ -700,13 +927,31 @@ function buildFinaleHTML(S, opts) {
       '你們的關係指數是 ' + person.rel + '。</p></section>');
   }
 
-  // 6. 墓誌銘
+  // 6. 一生的註腳
   const dominant = dominantTrait(S);
   const pool = death ? DEATH_EPITAPHS : EPITAPHS;
   const epitaph = (ending.epitaphs && ending.epitaphs.length)
     ? pick(ending.epitaphs)
     : (pool[dominant] || pool.mood);
-  part.push('<section><h3>墓誌銘</h3><p class="epitaph">「' + epitaph + '」</p></section>');
+  part.push('<section><h3>一生的註腳</h3><p class="epitaph">「' + epitaph + '」</p></section>');
+
+  // 6.5 家族樹（三代）
+  if (S.family && S.family.tree) {
+    part.push(familyTreeHTML(S));
+  }
+
+  // 6.6 繼承：以子女身分繼續
+  if (opts.canInherit && S.children && S.children.length) {
+    const kids = S.children.map((cid) => (S.childMeta || {})[cid] || {}).filter((c) => c.name);
+    if (kids.length) {
+      const btns = kids.map((c, i) =>
+        '<button class="stable-choice inherit" data-child="' + i + '"><span class="title">以「' + c.name + '」的身分繼續</span>' +
+        '<span class="sub">繼承遺產與天賦，從此延續家族</span></button>'
+      ).join('');
+      part.push('<section><h3>交棒給下一代</h3><p class="inherit-hint">你的人生畫下句點，但血脈與記憶仍會延續。選擇一個孩子，以他／她的視角繼續這個故事。</p>' +
+        '<div class="inheritBtns">' + btns + '</div></section>');
+    }
+  }
 
   // 7. 製作人卡
   const credit = ending.credit || THEME.credit || 'Produce By: CrazyRL7';
@@ -717,6 +962,19 @@ function buildFinaleHTML(S, opts) {
     '</div></section>');
 
   return part.join('');
+}
+
+/** 三代家族樹 HTML：祖輩 / 父輩 / 己輩（自己標註 highlight） */
+function familyTreeHTML(S) {
+  const t = S.family.tree;
+  const mk = (p) => '<span class="fnode' + (p.role === '自己' ? ' self' : '') + '"><i>' + p.role + '</i><b>' + p.name + '</b></span>';
+  const row = (label, list) => '<div class="frow"><div class="fgen">' + label + '</div><div class="fmembers">' + (list || []).map(mk).join('') + '</div></div>';
+  return '<section><h3>家族樹（第 ' + (S.generation || 1) + ' 代）</h3>' +
+    '<div class="familyTree">' +
+    row('祖輩', t.gen1) +
+    row('父輩', t.gen2) +
+    row('己輩', t.gen3) +
+    '</div></section>';
 }
 
 function S_ageMark(age) {
@@ -758,29 +1016,46 @@ function fmtMoney(n) {
   const THEME = CURRENT.THEME || {};
   return (typeof THEME.fmtMoney === 'function')
     ? THEME.fmtMoney(n)
-    : 'NT$ ' + Math.round(n || 0).toLocaleString('zh-TW');
+    : '$ ' + Math.round(n || 0).toLocaleString('zh-TW');
 }
 
 function showFinale(S, opts) {
   const el = UI.finale(buildFinaleHTML(S, opts));
-  if (!el) return Promise.resolve();
+  if (!el) return Promise.resolve({ action: 'none' });
   return new Promise((resolve) => {
     const cont = el.querySelector('#finaleContinue');
     const restart = el.querySelector('#finaleRestart');
+    const inherits = el.querySelectorAll('.inheritBtns button[data-child]');
+    let done = false;
+    const finish = (r) => {
+      if (done) return;
+      done = true;
+      resolve(r);
+    };
     // 重新開始：任何 finale 都必須可用（m_echo 的 canContinue 分支不能提早 return 跳過綁定）
     if (restart) {
       restart.addEventListener('click', () => {
         if (typeof window !== 'undefined') window.location.reload();
       });
     }
+    if (inherits.length) {
+      inherits.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-child'), 10);
+          if (isNaN(idx)) return;
+          UI.hideFinale();
+          finish({ action: 'child', childIdx: idx });
+        });
+      });
+    }
     if (opts.canContinue && cont) {
       cont.addEventListener('click', () => {
         S._echoShown = true;
         UI.hideFinale();
-        resolve();
+        finish({ action: 'continue' });
       });
       return;
     }
-    resolve();
+    finish({ action: 'none' });
   });
 }

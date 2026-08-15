@@ -1,30 +1,30 @@
 'use strict';
 
 const ELEM_SCHOOLS = {
-  taipei: '臺北市立建安國小',
-  taichung: '臺中市立大同國小',
-  kaohsiung: '高雄市立鹽埕國小',
-  other: '東光國小'
+  taipei: '北方市立青禾國小',
+  taichung: '中部市立光明國小',
+  kaohsiung: '南方市立海灣國小',
+  other: '山城國小'
 };
 
 const MID_STAR = {
-  taipei: '臺北市立中正國中',
-  taichung: '臺中市立居仁國中',
-  kaohsiung: '高雄市立五福國中',
+  taipei: '北方市立中正國中',
+  taichung: '中部市立居仁國中',
+  kaohsiung: '南方市立五福國中',
   other: '縣立資優國中'
 };
 
 const MID_ARTS = {
-  taipei: '臺北市立仁愛國中',
-  taichung: '臺中市立雙十國中',
-  kaohsiung: '高雄市立前金國中',
+  taipei: '北方市立仁愛國中',
+  taichung: '中部市立文藝國中',
+  kaohsiung: '南方市立前金國中',
   other: '縣立藝術國中'
 };
 
 const MID_NEAR = {
-  taipei: '臺北市立大安國中',
-  taichung: '臺中市立光明國中',
-  kaohsiung: '高雄市立大義國中',
+  taipei: '北方市立大安國中',
+  taichung: '中部市立光明國中',
+  kaohsiung: '南方市立大義國中',
   other: '鎮上的學區國中'
 };
 
@@ -1035,6 +1035,83 @@ export const SCENES = [
         chars: { friend: { rel: 7 } }
       }
     ]
+  },
+  {
+    id: 'life_childhood_026',
+    act: 'childhood',
+    stage: 'kid',
+    minAge: 6,
+    maxAge: 12,
+    title: '阿公的懷錶與阿嬤的紅包',
+    text: '週末，你們一家回鄉下。阿公坐在藤椅上，從口袋掏出一只銅懷錶，說那是他年輕時攢了三個月薪水買的；阿嬤從廚房端出剛蒸好的紅龜粿，硬是塞兩個到你手裡。他們老了，笑起來時眼角的皺紋像歲月的河。',
+    tag: '親屬｜家族',
+    weight: 1,
+    once: true,
+    cond: (S) => !!(S.family && S.family.tree),
+    opts: [
+      {
+        label: '陪阿公數懷錶上的刻度，聽他講年輕時的故事',
+        hint: '有些故事，錯過就再也聽不到了',
+        main: true,
+        effects: { family: 5, curiosity: 4, mood: 4 },
+        chars: { mom: { rel: 2 }, dad: { rel: 2 } }
+      },
+      {
+        label: '幫阿嬤捏紅龜粿，學她手上的功夫',
+        hint: '手藝是這樣一代一代傳下來的',
+        effects: { family: 4, arts: 3, mood: 3 }
+      },
+      {
+        label: '把紅包收好，說要存起來以後孝順他們',
+        hint: '一張紙鈔，裝著兩份心意',
+        effects: { family: 4, money: 600, mood: 2 }
+      },
+      {
+        label: '跑去找堂表兄弟姐妹玩，鬧到滿身汗',
+        hint: '過年過節，就是要這樣才熱鬧',
+        effects: { social: 4, sport: 3, mood: 5, family: 2 }
+      }
+    ]
+  },
+  {
+    id: 'life_childhood_027',
+    act: 'childhood',
+    stage: 'kid',
+    minAge: 8,
+    maxAge: 12,
+    title: '堂表兄弟姐妹的巷戰',
+    text: '過年回老家，客廳堆滿了人。大伯家的堂哥、二舅家的表妹全都來了，大人們圍著圓桌搓麻將，你們這群小的被趕到巷子裡去玩。磚牆、鞭炮屑、巷口那隻老黃狗——你們把它當成整座冒險島。',
+    tag: '親屬｜家族',
+    weight: 1,
+    once: true,
+    cond: (S) => !!(S.family && S.family.tree),
+    opts: [
+      {
+        label: '當鬼抓人的鬼，追得大家滿巷子跑',
+        hint: '誰跑得最快，誰就是今天的英雄',
+        effects: { sport: 4, social: 3, mood: 5 }
+      },
+      {
+        label: '躲進老黃狗的窩旁邊，躲到沒人找得到',
+        hint: '最好的藏身處，永遠在最不起眼的地方',
+        effects: { curiosity: 3, social: 3, mood: 4 }
+      },
+      {
+        label: '拉著表妹一起用紅磚塊疊城堡',
+        hint: '一個蓋屋頂，一個砌城牆',
+        effects: { arts: 4, family: 3, social: 2 }
+      },
+      {
+        label: '搶到最後一個鞭炮，點燃前猶豫了',
+        hint: '有些事，開頭需要一點勇氣',
+        dice: {
+          skill: 'sport',
+          dc: 8,
+          pass: { confidence: 4, mood: 3, social: 2 },
+          fail: { stress: 2, mood: -1 }
+        }
+      }
+    ]
   }
 ];
 
@@ -1045,7 +1122,7 @@ export const CHILDHOOD_MILESTONES = [
     title: '背起書包的那一天',
     text: '你背著全新的書包站在校門口，鳳凰木的葉子在風裡沙沙作響。媽媽蹲下來幫你把名牌別好，說：「從今天起，你就是一年級了。」你轉過身，走進那扇即將承載你六年光陰的校門。',
     kind: 'auto',
-    setSchool: { name: '臺北市立建安國小', level: 'elementary' },
+    setSchool: { name: '北方市立青禾國小', level: 'elementary' },
     f: (S) => {
       S.school = ELEM_SCHOOLS[S.birth.city] || ELEM_SCHOOLS.taipei;
       S.education = 'elementary';
@@ -1063,7 +1140,7 @@ export const CHILDHOOD_MILESTONES = [
         hint: '課業重、同儕強，適合課業表現好的你',
         need: { stat: 'math', min: 60 },
         effects: { stress: 4, confidence: 3, math: 3 },
-        setSchool: { name: '臺北市立中正國中', level: 'middle' },
+        setSchool: { name: '北方市立中正國中', level: 'middle' },
         f: (S) => {
           S.school = MID_STAR[S.birth.city] || MID_STAR.taipei;
           S.education = 'middle';
@@ -1074,7 +1151,7 @@ export const CHILDHOOD_MILESTONES = [
         hint: '需要一定的藝術底子',
         need: { stat: 'arts', min: 50 },
         effects: { arts: 3, stress: 2, mood: 3 },
-        setSchool: { name: '臺北市立仁愛國中', level: 'middle' },
+        setSchool: { name: '北方市立仁愛國中', level: 'middle' },
         f: (S) => {
           S.school = MID_ARTS[S.birth.city] || MID_ARTS.taipei;
           S.education = 'middle';
@@ -1084,12 +1161,26 @@ export const CHILDHOOD_MILESTONES = [
         label: '就近入學，唸家附近的國中',
         hint: '走十分鐘就到的學區國中，壓力小些',
         effects: { stress: -3, family: 3, mood: 2 },
-        setSchool: { name: '臺北市立大安國中', level: 'middle' },
+        setSchool: { name: '北方市立大安國中', level: 'middle' },
         f: (S) => {
           S.school = MID_NEAR[S.birth.city] || MID_NEAR.taipei;
           S.education = 'middle';
         }
+      },
+      {
+        label: '出國唸中學，看看更大的世界',
+        hint: '需要語言與財力，提早獨立',
+        need: { stat: 'language', min: 50 },
+        warn: true,
+        effects: { independence: 8, language: 5, curiosity: 5, stress: 5, money: -150000, family: -4 },
+        setSchool: { name: '美國｜聖安德魯中學', level: 'middle' },
+        f: (S) => {
+          S.school = '美國・聖安德魯中學';
+          S.education = 'middle';
+          S.flags.abroad = true;
+          S.flags.abroadCountry = '美國';
+        }
       }
     ]
-  }
+  },
 ];

@@ -614,6 +614,55 @@ a {
   color: var(--gold);
 }
 
+/* Effect coloring (後果卡) */
+
+.fx-pos {
+  color: var(--money);
+  font-weight: 600;
+}
+
+.fx-neg {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.fx-zero {
+  color: var(--muted);
+}
+
+/* Board delta indicators */
+
+.delta {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 4px;
+  vertical-align: 2px;
+  opacity: 0.95;
+}
+
+.delta.up {
+  color: var(--money);
+}
+
+.delta.down {
+  color: var(--danger);
+}
+
+/* Timeline stage header */
+
+.tlStage {
+  margin: 2px 0 10px;
+  padding: 6px 10px 6px 22px;
+  font-family: var(--head);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gold2);
+  border-left: 2px solid var(--gold2);
+  background: linear-gradient(90deg, rgba(232, 195, 111, 0.08), transparent);
+}
+
 /* --------------------------------------------------------------------------
    Actions panel
    -------------------------------------------------------------------------- */
@@ -1330,5 +1379,115 @@ a {
 
   .heroTitle {
     margin-top: 18px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   後代系統：家族樹 & 終幕繼承（三代家譜、以子女身分繼續）
+   -------------------------------------------------------------------------- */
+
+.familyTree {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.frow {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.fgen {
+  padding-top: 6px;
+  font-family: var(--head);
+  font-size: 13px;
+  color: var(--gold2);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.fmembers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fnode {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 11px;
+  min-width: 62px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: linear-gradient(160deg, var(--panel2), var(--panel));
+  text-align: center;
+}
+
+.fnode i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.fnode b {
+  font-family: var(--head);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.fnode.self {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(232, 195, 111, 0.25), 0 4px 14px rgba(232, 195, 111, 0.12);
+}
+
+.fnode.self i {
+  color: var(--gold);
+}
+
+.inherit-hint {
+  margin: 8px 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.inheritBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inheritBtns .stable-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.inheritBtns .sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.inheritBtns .stable-choice:hover .sub {
+  color: var(--gold2);
+}
+
+@media (max-width: 480px) {
+  .frow {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .fgen {
+    padding-top: 0;
   }
 }

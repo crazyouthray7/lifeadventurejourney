@@ -122,6 +122,7 @@ async function runLoop() {
   if (typeof window === 'undefined') return;
   while (true) {
     const res = await playYear();
+    if (res.handoff) continue; // 世代交替：以子女身分繼續，不中斷循環
     if (res.ended || !res.alive) break;
   }
 }

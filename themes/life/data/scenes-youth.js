@@ -309,7 +309,7 @@ export const SCENES = [
     stage: 'teen',
     minAge: 16, maxAge: 17,
     title: '放學後的天台上',
-    text: '放學後的天台，風把校服吹得鼓鼓的。他把手插在口袋裡，看向遠方的捷運，聲音有點抖：「我有話跟你說。」風忽然停了。',
+    text: '放學後的天台，風把校服吹得鼓鼓的。他把手插在口袋裡，看向遠方的高架軌道，聲音有點抖：「我有話跟你說。」風忽然停了。',
     tag: '初戀',
     once: true,
     cond: (S) => !!(S.chars && S.chars.crush && S.chars.crush.met),
@@ -422,8 +422,8 @@ export const SCENES = [
     act: 'youth',
     stage: 'teen',
     minAge: 18, maxAge: 18,
-    title: '指考倒數第五十天的凌晨',
-    text: '指考倒數第五十天，你凌晨一點半從書桌抬頭，檯燈照亮桌上的鉛筆屑。桌上那張附中的照片被你貼了很久，邊角都捲了。手機震了一下，是媽媽傳的：「餓嗎？」',
+    title: '大考倒數第五十天的凌晨',
+    text: '大考倒數第五十天，你凌晨一點半從書桌抬頭，檯燈照亮桌上的鉛筆屑。桌上那張理想高中的照片被你貼了很久，邊角都捲了。手機震了一下，是媽媽傳的：「餓嗎？」',
     tag: '升學｜壓力',
     once: true,
     opts: [
@@ -487,29 +487,33 @@ export const YOUTH_MILESTONES = [
   {
     id: 'm_high',
     age: 15,
-    title: '高中會考',
-    text: '國中三年，一戰定高下。會考成績單貼在家裡冰箱上，爸媽都圍了過來。下一個路口，是高中、高職，還是更遠的地方。',
+    title: '高中入學考試',
+    text: '國中三年，一戰定高下。入學考試成績單貼在家裡冰箱上，爸媽都圍了過來。下一個路口，是高中、高職，還是更遠的地方。',
     kind: 'choice',
     opts: [
-      { label: '挑戰頂尖高中：師大附中', hint: '會考黑馬，擠進第一志願', need: { stat: 'math', min: 60 }, setSchool: { name: '國立臺灣師範大學附屬高級中學', level: 'high' }, effects: { confidence: 5, mood: 4, stress: -3 }, chars: { teacher: { rel: 5, met: true } } },
-      { label: '念高職：大安高工', hint: '學一技之長，走科技的路', need: { stat: 'tech', min: 40 }, setSchool: { name: '臺北市立大安高級工業職業學校', level: 'high' }, effects: { tech: 4, independence: 3, confidence: 3 }, chars: { teacher: { rel: 3, met: true } } },
-      { label: '念高職：華岡藝校', hint: '把熱情變成專業', need: { stat: 'arts', min: 40 }, setSchool: { name: '私立華岡藝術學校', level: 'high' }, effects: { arts: 4, independence: 3, confidence: 3 }, chars: { teacher: { rel: 3, met: true } } },
-      { label: '去附近的社區高中', hint: '安穩念完高中三年', setSchool: { name: '臺北市立成淵高級中學', level: 'high' }, effects: { confidence: 3, stress: -3 }, chars: { teacher: { rel: 3, met: true } } }
+      { label: '挑戰頂尖高中：北方一中', hint: '會考黑馬，擠進第一志願', need: { stat: 'math', min: 60 }, setSchool: { name: '北方市立第一高級中學', level: 'high' }, effects: { confidence: 5, mood: 4, stress: -3 }, chars: { teacher: { rel: 5, met: true } } },
+      { label: '念高職：工業職業學校', hint: '學一技之長，走科技的路', need: { stat: 'tech', min: 40 }, setSchool: { name: '北方市立工業職業學校', level: 'high' }, effects: { tech: 4, independence: 3, confidence: 3 }, chars: { teacher: { rel: 3, met: true } } },
+      { label: '念高職：藝術學校', hint: '把熱情變成專業', need: { stat: 'arts', min: 40 }, setSchool: { name: '華岡藝術學校', level: 'high' }, effects: { arts: 4, independence: 3, confidence: 3 }, chars: { teacher: { rel: 3, met: true } } },
+      { label: '去附近的社區高中', hint: '安穩念完高中三年', setSchool: { name: '北方市立成淵高級中學', level: 'high' }, effects: { confidence: 3, stress: -3 }, chars: { teacher: { rel: 3, met: true } } },
+      { label: '出國唸高中，申請海外學校', hint: '需要語言與財力，提早獨立', need: { stat: 'language', min: 55 }, warn: true, setSchool: { name: '美國｜聖安德魯中學', level: 'high' }, effects: { language: 6, independence: 7, curiosity: 6, stress: 4, money: -200000, family: -3 }, chars: { mom: { rel: -2, met: true } }, f: (S) => { S.school = '美國・聖安德魯中學'; S.education = 'high'; S.flags.abroad = true; S.flags.abroadCountry = '美國'; } }
     ]
   },
   {
     id: 'm_university',
     age: 18,
-    title: '大學指考',
-    text: '指考成績出爐那晚，查榜的網頁轉了三圈才載入。你鬆開滑鼠，數字停在半空。接下來的四年，你要去哪一個城市、念哪一個科系？',
+    title: '大學入學考試',
+    text: '入學考試成績出爐那晚，查榜的網頁轉了三圈才載入。你鬆開滑鼠，數字停在半空。接下來的四年，你要去哪一個城市、哪一個國家，念哪一個科系？',
     kind: 'choice',
     opts: [
-      { label: '臺大醫科：懸壺濟世', hint: '需要頂尖的自然成績', need: { stat: 'science', min: 75 }, setSchool: { name: '國立臺灣大學', level: 'university' }, setMajor: '醫學系', effects: { science: 6, confidence: 5, stress: 5 }, chars: { teacher: { rel: 5, met: true } } },
-      { label: '成大物理：探究世界底層', hint: '數理是入場券', need: { stat: 'math', min: 60 }, setSchool: { name: '國立成功大學', level: 'university' }, setMajor: '物理學系', effects: { math: 5, science: 5, confidence: 4 }, chars: { teacher: { rel: 4, met: true } } },
-      { label: '臺大資工：寫出未來', hint: '數理與邏輯的雙重考驗', need: { stat: 'math', min: 70 }, setSchool: { name: '國立臺灣大學', level: 'university' }, setMajor: '資訊工程', effects: { math: 5, tech: 6, confidence: 5 }, chars: { teacher: { rel: 5, met: true } } },
-      { label: '政大中文：深耕文字', hint: '語文能力是入場券', need: { stat: 'language', min: 60 }, setSchool: { name: '國立政治大學', level: 'university' }, setMajor: '中國文學', effects: { language: 6, arts: 3, confidence: 4 }, chars: { teacher: { rel: 5, met: true } } },
-      { label: '政大企管：布局商場', hint: '數理與人際並重', need: { stat: 'math', min: 50 }, setSchool: { name: '國立政治大學', level: 'university' }, setMajor: '企業管理', effects: { math: 4, leadership: 5, social: 4 }, chars: { teacher: { rel: 4, met: true } } },
-      { label: '臺藝大視傳：揮灑創作', hint: '讓作品說話', need: { stat: 'arts', min: 60 }, setSchool: { name: '國立臺灣藝術大學', level: 'university' }, setMajor: '視覺傳達設計', effects: { arts: 7, confidence: 5, mood: 5 }, chars: { teacher: { rel: 4, met: true } } },
+      { label: '北方大學醫科：懸壺濟世', hint: '需要頂尖的自然成績', need: { stat: 'science', min: 75 }, setSchool: { name: '北方大學', level: 'university' }, setMajor: '醫學系', effects: { science: 6, confidence: 5, stress: 5 }, chars: { teacher: { rel: 5, met: true } } },
+      { label: '成功大學物理：探究世界底層', hint: '數理是入場券', need: { stat: 'math', min: 60 }, setSchool: { name: '成功大學', level: 'university' }, setMajor: '物理學系', effects: { math: 5, science: 5, confidence: 4 }, chars: { teacher: { rel: 4, met: true } } },
+      { label: '北方大學資工：寫出未來', hint: '數理與邏輯的雙重考驗', need: { stat: 'math', min: 70 }, setSchool: { name: '北方大學', level: 'university' }, setMajor: '資訊工程', effects: { math: 5, tech: 6, confidence: 5 }, chars: { teacher: { rel: 5, met: true } } },
+      { label: '政治大學中文：深耕文字', hint: '語文能力是入場券', need: { stat: 'language', min: 60 }, setSchool: { name: '政治大學', level: 'university' }, setMajor: '中國文學', effects: { language: 6, arts: 3, confidence: 4 }, chars: { teacher: { rel: 5, met: true } } },
+      { label: '政治大學企管：布局商場', hint: '數理與人際並重', need: { stat: 'math', min: 50 }, setSchool: { name: '政治大學', level: 'university' }, setMajor: '企業管理', effects: { math: 4, leadership: 5, social: 4 }, chars: { teacher: { rel: 4, met: true } } },
+      { label: '北方藝術大學視傳：揮灑創作', hint: '讓作品說話', need: { stat: 'arts', min: 60 }, setSchool: { name: '北方藝術大學', level: 'university' }, setMajor: '視覺傳達設計', effects: { arts: 7, confidence: 5, mood: 5 }, chars: { teacher: { rel: 4, met: true } } },
+      { label: '出國留學：美國常春藤名校', hint: '世界頂尖，需要語言與頂尖成績', need: { stat: 'language', min: 70 }, warn: true, setSchool: { name: '哈佛大學', level: 'university' }, setMajor: '經濟學', effects: { language: 6, confidence: 6, independence: 5, stress: 6, money: -500000, family: -4 }, chars: { mom: { rel: -3, met: true } }, f: (S) => { S.school = '哈佛大學'; S.education = 'university'; S.flags.abroad = true; S.flags.abroadCountry = '美國'; } },
+      { label: '出國留學：劍橋大學', hint: '古典學術殿堂，需要優異的語文', need: { stat: 'language', min: 70 }, warn: true, setSchool: { name: '劍橋大學', level: 'university' }, setMajor: '文學', effects: { language: 7, arts: 5, confidence: 5, stress: 5, money: -450000, family: -3 }, chars: { mom: { rel: -3, met: true } }, f: (S) => { S.school = '劍橋大學'; S.education = 'university'; S.flags.abroad = true; S.flags.abroadCountry = '英國'; } },
+      { label: '出國留學：東京大學', hint: '鄰國的頂尖學府，離家不遠', need: { stat: 'language', min: 65 }, warn: true, setSchool: { name: '東京大學', level: 'university' }, setMajor: '理工', effects: { math: 6, tech: 5, independence: 5, stress: 4, money: -300000, family: -2 }, chars: { mom: { rel: -2, met: true } }, f: (S) => { S.school = '東京大學'; S.education = 'university'; S.flags.abroad = true; S.flags.abroadCountry = '日本'; } },
       { label: '高職畢業，進工廠學技術', hint: '有一技之長，早點經濟獨立', need: { stat: 'tech', min: 50 }, setJob: { id: 'operator', title: '作業員', salary: 35000, tier: '基層' }, effects: { money: 5000, independence: 5, stress: 2 }, chars: { mom: { rel: 3, met: true } } },
       { label: '高中畢業，先出社會工作', hint: '早一步踏入社會', setJob: { id: 'waiter', title: '服務生', salary: 30000, tier: '基層' }, effects: { money: 3000, independence: 4, stress: 3 }, chars: { mom: { rel: 3, met: true } } }
     ]

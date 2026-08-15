@@ -137,7 +137,7 @@ export const JOBS = [
     needSkills: { science: 55, math: 40 },
     baseSalary: 60000,
     growth: '住院醫師磨練後升主治，科別與教學醫院決定薪水。',
-    desc: '把別人的生死扛在肩上，一天二十四小時都是職責。'
+    desc: '把別人的健康與安穩扛在肩上，一天二十四小時都是職責。'
   },
   {
     id: 'architect',
@@ -208,5 +208,35 @@ export const JOBS = [
     baseSalary: 45000,
     growth: '跨國公司的薪水可能更高，彈性本身就是紅利。',
     desc: '在家、在咖啡廳、在世界的角落上班，螢幕就是辦公室。'
+  },
+  {
+    id: 'investor',
+    title: '投資人',
+    tier: '自由',
+    needEdu: 'university',
+    needSkills: { math: 50, curiosity: 30 },
+    baseSalary: 50000,
+    growth: '報酬率決定收入，眼光、紀律與運氣缺一不可，市場起伏就是你的薪水單。',
+    desc: '在股票、基金與趨勢之間穿梭，用時間和金錢一起工作。'
+  },
+  {
+    id: 'landlord',
+    title: '包租公／婆',
+    tier: '自由',
+    needEdu: 'high',
+    needSkills: { math: 35, leadership: 20 },
+    baseSalary: 42000,
+    growth: '房產增值與租金逐年累積，管理得當就是一門安穩的長期生意。',
+    desc: '把房子租給別人，把每個月的一筆收入，變成生活裡穩穩的底氣。'
+  },
+  {
+    id: 'creator',
+    title: '內容創作者',
+    tier: '自由',
+    needEdu: 'high',
+    needSkills: { arts: 40, tech: 30, leadership: 20 },
+    baseSalary: 36000,
+    growth: '訂閱與流量決定收入，靈感是本金，穩定輸出才是複利。',
+    desc: '用影片、文字或聲音與世界對話，把興趣慢慢養成一份事業。'
   }
 ];

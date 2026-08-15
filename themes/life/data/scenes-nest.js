@@ -466,7 +466,8 @@ export const SCENES = [
     id: 'life_nest_030',
     act: 'nest',
     stage: 'adult',
-    minAge: 38, maxAge: 40,
+    minAge: 38,
+    maxAge: 40,
     title: '收拾舊書房的傍晚',
     text: '搬家前收拾書房，你翻出大學的畢業照、第一張識別證、沒寄出去的信。窗外天色漸暗，樓下廚房傳出炒菜聲。你坐在紙箱之間，忽然想數數這些年走了多遠。',
     tag: '人生｜回望',
@@ -477,9 +478,44 @@ export const SCENES = [
       { label: '寫一封信給十年後的自己', hint: '跟未來的自己對話', effects: { language: 4, curiosity: 4, mood: 3 } },
       { label: '撥個電話給爸媽，說想回家', hint: '有些話現在說還來得及', chars: { mom: { rel: 5, met: true }, dad: { rel: 4, met: true } }, effects: { family: 6, mood: 5 } }
     ]
+  },
+  {
+    id: 'life_nest_031',
+    act: 'nest',
+    stage: 'adult',
+    minAge: 36,
+    maxAge: 40,
+    title: '異鄉的第一個清晨',
+    text: '移民後的第一個清晨，你被陌生的鳥叫喚醒。窗外是一片你認不得的街景，冰箱裡還空著。你拿起手機，時差讓爸媽那邊還是半夜。你在新的地址寫下第一封寄回家的信。',
+    tag: '移居｜起點',
+    once: true,
+    cond: (S) => !!S.flags.abroad,
+    opts: [
+      { label: '出門走走，認識附近的街道', hint: '把陌生走成熟悉', effects: { curiosity: 5, mood: 4, independence: 3 } },
+      { label: '先打一通越洋電話回家', hint: '報個平安，讓家人放心', chars: { mom: { rel: 6, met: true }, dad: { rel: 4, met: true } }, effects: { family: 6, mood: 5, stress: -3 } },
+      { label: '記下這個地址，開始新的生活', hint: '此地就是新的起點', effects: { independence: 5, confidence: 4, stress: 2 } },
+      { label: '煮一杯咖啡，坐在窗前發呆', hint: '允許自己慢慢適應', effects: { mood: 3, stress: -2 } }
+    ]
+  },
+  {
+    id: 'life_nest_032',
+    act: 'nest',
+    stage: 'adult',
+    minAge: 37,
+    maxAge: 41,
+    title: '異國同事的午餐邀約',
+    text: '午休時間，異國的同事用還不太熟悉的語言問你要不要一起吃飯。你聽懂了一半，另一半靠著手勢和笑容補上。餐廳裡大家聊著你聽不太懂的笑話，你也跟著笑，忽然覺得好像沒有那麼遠了。',
+    tag: '移居｜融入',
+    once: true,
+    cond: (S) => !!S.flags.abroad,
+    opts: [
+      { label: '努力開口，說錯也沒關係', hint: '語言是從丟臉開始的', dice: { skill: 'language', dc: 12, pass: { social: 6, confidence: 5, language: 3 }, fail: { social: 2, confidence: -2 } } },
+      { label: '靜靜聽，先熟悉語感', hint: '觀察也是一種學習', effects: { curiosity: 4, language: 2, mood: 2 } },
+      { label: '約他們下次一起做家鄉菜', hint: '用味道交流', effects: { social: 5, mood: 5, arts: 2, money: -2000 } },
+      { label: '婉拒，先習慣一個人', hint: '慢慢來，比較快', effects: { independence: 3, mood: -2, stress: -2 } }
+    ]
   }
 ];
-
 export const NEST_MILESTONES = [
   {
     id: 'm_housing',
@@ -514,6 +550,20 @@ export const NEST_MILESTONES = [
     ]
   },
   {
+    id: 'm_immigrate',
+    age: 35,
+    title: '移居',
+    text: '三十五歲，一封海外的邀請函躺在信箱裡。朋友說「趁還走得動，出去看看」，爸媽在電話裡沉默了一下。你盯著世界地圖，想：人生的下一站，要不要換一個國家？',
+    kind: 'choice',
+    opts: [
+      { label: '移居美國，闖一闖', hint: '機會與壓力並存', need: { stat: 'language', min: 65 }, warn: true, effects: { money: -500000, independence: 6, stress: 6, curiosity: 5, family: -3 }, f: (S) => { S.flags.abroad = true; S.flags.abroadCountry = '美國'; }, thread: { sceneId: 'life_thread_immigrate_001', atAge: 36 } },
+      { label: '移居加拿大，求安穩', hint: '地廣人稀，步調慢', need: { stat: 'language', min: 60 }, effects: { money: -400000, independence: 5, stress: 4, curiosity: 4, family: -2 }, f: (S) => { S.flags.abroad = true; S.flags.abroadCountry = '加拿大'; }, thread: { sceneId: 'life_thread_immigrate_001', atAge: 36 } },
+      { label: '移居澳洲，換一種生活', hint: '陽光、海灘、慢活', need: { stat: 'language', min: 55 }, effects: { money: -350000, independence: 5, stress: 4, curiosity: 4, family: -2 }, f: (S) => { S.flags.abroad = true; S.flags.abroadCountry = '澳洲'; }, thread: { sceneId: 'life_thread_immigrate_001', atAge: 36 } },
+      { label: '移居日本，離家不遠', hint: '文化相近，生活便利', need: { stat: 'language', min: 60 }, effects: { money: -300000, independence: 4, stress: 3, curiosity: 4, family: -2 }, f: (S) => { S.flags.abroad = true; S.flags.abroadCountry = '日本'; }, thread: { sceneId: 'life_thread_immigrate_001', atAge: 36 } },
+      { label: '留在熟悉的土地深耕', hint: '此心安處是吾鄉', effects: { family: 4, mood: 3, stress: -3 } }
+    ]
+  },
+  {
     id: 'm_family',
     age: 36,
     title: '家庭',
@@ -523,6 +573,30 @@ export const NEST_MILESTONES = [
       { label: '準備迎接新成員', hint: '從兩人世界變成三人行', need: { stat: 'family', min: 45 }, chars: { partner: { rel: 6, met: true } }, effects: { family: 6, mood: 6, money: -50000 }, setChild: true },
       { label: '不生，享受現有的生活', hint: '人生不只一種活法', chars: { partner: { rel: 2, met: true } }, effects: { family: 2, independence: 5, mood: 3 } },
       { label: '再想想，先問問爸媽的意見', hint: '不著急', chars: { mom: { rel: 3, met: true } }, effects: { curiosity: 3, stress: 2 } }
+    ]
+  },
+  {
+    id: 'm_family2',
+    age: 41,
+    title: '家庭：第二個孩子',
+    text: '孩子的作業本開始出現「我的家人」的繪圖，畫上除了爸爸媽媽，還有一個笑瞇瞇的小人影。你看著那幅畫，忽然覺得——也許家裡的熱鬧，可以再添一點。',
+    kind: 'choice',
+    when: (S) => (S.children || []).length >= 1,
+    opts: [
+      { label: '迎接第二個寶貝', hint: '手足是最長久的禮物', need: { stat: 'family', min: 45 }, chars: { partner: { rel: 5, met: true } }, effects: { family: 6, mood: 5, money: -60000 }, setChild: true },
+      { label: '一個孩子就很好', hint: '把全部的愛留給他／她', chars: { partner: { rel: 2, met: true } }, effects: { family: 3, independence: 3, mood: 2 } }
+    ]
+  },
+  {
+    id: 'm_family3',
+    age: 45,
+    title: '家庭：第三個孩子',
+    text: '孩子們開始搶電視遙控器，飯桌上永遠少一張椅子。你被兩個小傢伙追著跑了一圈，氣喘吁吁地笑出來——這個家，還能再熱鬧一點嗎？',
+    kind: 'choice',
+    when: (S) => (S.children || []).length >= 2,
+    opts: [
+      { label: '迎接第三個寶貝', hint: '熱鬧加倍，愛也加倍', need: { stat: 'family', min: 45 }, chars: { partner: { rel: 4, met: true } }, effects: { family: 6, mood: 4, money: -70000 }, setChild: true },
+      { label: '三個孩子剛剛好', hint: '把心力留給眼前的孩子們', chars: { partner: { rel: 2, met: true } }, effects: { family: 2, stress: -2, mood: 2 } }
     ]
   },
   {

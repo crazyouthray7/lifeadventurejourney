@@ -15,6 +15,7 @@ import { THREAD_SCENES } from './data/threads.js';
 import { CHARACTERS } from './data/characters.js';
 import { JOBS } from './data/jobs.js';
 import { SCHOOLS } from './data/schools.js';
+import { genName, genGender } from './data/names.js';
 
 // 注意：THREAD_SCENES 不併入 SCENES——引擎經由 THEME.threadScenes 獨立存取，
 // 併入會導致伏筆場景被當普通場景抽走（見 .omo/spec.md §13.5）。
@@ -78,7 +79,9 @@ export const THEME = {
 
   scenesPerAct: { birth: 2, childhood: 3, youth: 3, adult: 3, midlife: 3, oldage: 2 },
 
-  fmtMoney: (n) => 'NT$ ' + n.toLocaleString('zh-TW'),
+  names: { genName, genGender },
+
+  fmtMoney: (n) => '$ ' + n.toLocaleString('zh-TW'),
   diceText: (roll, dc, pass) => `骰出 ${roll} ／ 目標 ${dc}${pass ? ' —— 通過' : ' —— 未通過'}`,
   deathCheck: null,
 };
